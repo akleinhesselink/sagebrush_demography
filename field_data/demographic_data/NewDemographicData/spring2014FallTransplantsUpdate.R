@@ -1,0 +1,63 @@
+#### update Plants table and status table from 
+#### early spring transplant data
+#### open sage.sqlite
+#### update plants table active and end_date columns
+
+rm(list = ls())
+library(xlsx)
+library(RSQLite)
+
+setwd('~/Documents/Kleinhesselink/Artemisia_tripartita_project/field_data/demographic_data/NewDemographicData/')
+
+earlySpringTransplants = read.xlsx2('2014_Early_Spring_Fall_Transplants_Update.xlsx', sheetIndex= 1 )
+names(earlySpringTransplants)
+
+earlySpringTransplants$date = as.Date(as.numeric(levels(earlySpringTransplants$date))[earlySpringTransplants$date], origin = '1899-12-30')
+earlySpringTransplants$spring = as.Date(as.numeric(levels(earlySpringTransplants$spring))[earlySpringTransplants$spring], origin = '1899-12-30')
+
+fallTransplantsUpdate = data.frame(earlySpringTransplants[, c('spring', 'tag')], c1 = NA, c2 = NA, ch = NA, 
+                                canopy = NA, infls = NA, lv_stems = NA, dd_stems = NA, stem_d1 = NA, stem_d2 = NA, 
+                                earlySpringTransplants[, c('status', 'notes', 'herbivory')])
+
+names(fallTransplantsUpdate)
+names(fallTransplantsUpdate)[ c(1, 2)] <- c('date','field_tag') #### standard names for headers 
+
+fallTransplantsUpdate$date = strftime(fallTransplantsUpdate$date)
+
+db = dbConnect(SQLite(), dbname = '../sage.sqlite')
+
+res = dbSendQuery( db, "SELECT ID, tag1 FROM plants WHERE class = 5")
+class5s = fetch(res, -1)
+dbClearResult(res)
+class5s
+dbListFields(db, 'status')
+
+fallTransplantsUpdate = merge(class5s, fallTransplantsUpdate, by.x = 'tag1', by.y = 'field_tag')
+names(fallTransplantsUpdate)[1] <- 'field_tag'
+names(fallTransplantsUpdate)
+fallTransplantsUpdate = cbind(ID = fallTransplantsUpdate$ID, date = fallTransplantsUpdate$date, 
+                              field_tag = fallTransplantsUpdate$field_tag, fallTransplantsUpdate[, -c(1:3)])
+names(fallTransplantsUpdate)
+head(fallTransplantsUpdate)
+nrow(fallTransplantsUpdate)
+
+dbWriteTable(db, name = 'status', value = fallTransplantsUpdate, 
+             append = TRUE, row.names = FALSE)
+
+res = dbSendQuery( db, "SELECT ID, field_tag, date FROM status WHERE date(date) > date('2014-01-01') AND date(date) >= date('2014-05-16') 
+                   AND status = 0")
+wintersDead = fetch(res, -1)
+dbClearResult(res)
+
+tail(wintersDead)
+
+for(i in 1:nrow(wintersDead)){ 
+  ID = wintersDead[i, 'ID']
+  date = wintersDead[i, 'date']
+  res = dbSendQuery( db, "UPDATE plants SET active = 0, end_date = ? WHERE ID = ? AND active = 1 AND class = 5", 
+                     list(date, ID))
+  dbClearResult(res)
+}
+
+
+dbDisconnect(db)            # Close connection
