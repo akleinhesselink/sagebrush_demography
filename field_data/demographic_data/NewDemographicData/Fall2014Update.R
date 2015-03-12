@@ -6,9 +6,6 @@ library(xlsx)
 library(RSQLite)
 setwd('~/Documents/Kleinhesselink/Artemisia_tripartita_project/field_data/demographic_data/NewDemographicData/')
 
-source('spring2014Update.R') ##### Recreate the database by re-running the initiation scripts 
-
-
 fallStatus = read.xlsx2('2014_FallData.xlsx', sheetIndex= 1 , startRow=1)
 names(fallStatus)
 

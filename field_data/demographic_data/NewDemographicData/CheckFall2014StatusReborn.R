@@ -42,7 +42,7 @@ res = dbSendQuery( db, 'SELECT * FROM plants WHERE ID = ?', reborn$ID[2])
 fetch(res, -1)
 dbClearResult(res)
 
-res = dbSendQuery( db, 'SELECT * from status WHERE ID = ?', reborn$ID[1])
+res = dbSendQuery( db, 'SELECT * from status WHERE ID = ?', reborn$ID[2])
 fetch(res, -1)
 dbClearResult(res)
 
