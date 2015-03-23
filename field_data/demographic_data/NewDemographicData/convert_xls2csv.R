@@ -1,7 +1,11 @@
 #!usr/bin/Rscript
-#### script for batch conversion of XLS and XLSX file to csv 
-#### Run from the command line to convert all xlsx files in the current
-#### working directory to csv files with the same name 
+#### script for batch conversion of XLS and XLSX file to CSV 
+#### Run from the command line to convert all xlsx files in folder
+#### to csv files with the same name.  csv files are placed in the 
+#### current working directory.
+####
+#### usage example: 
+####   > Rscript convert_xls2csv.R <foldername>
 
 require( xlsx)
 
