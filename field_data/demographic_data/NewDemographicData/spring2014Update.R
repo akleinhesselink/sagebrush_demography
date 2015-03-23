@@ -6,26 +6,15 @@
 
 
 rm(list = ls())
-library(xlsx)
 library(RSQLite)
 
 setwd('~/Documents/Kleinhesselink/Artemisia_tripartita_project/field_data/demographic_data/NewDemographicData/')
 
-springStatus = read.xlsx2('2014_spring_size_update_data.xlsx', sheetIndex= 1 , startRow=2)
-names(springStatus)
+springStatus = read.csv('2014_spring_size_update_data.csv')
 
-springStatus$date = as.Date(as.numeric(levels(springStatus$date))[springStatus$date], origin = '1899-12-30')
+origin = '1899-12-30'
+springStatus$date = as.Date(springStatus$date, origin = origin)
 springStatus[ springStatus$date == as.Date('2014-06-01'), ] 
-
-springStatus$ID = as.integer(levels(springStatus$ID))[springStatus$ID]
-springStatus$TAG = as.integer(levels(springStatus$TAG))[springStatus$TAG]
-springStatus$canopy = as.numeric(levels(springStatus$canopy)[ springStatus$canopy ])
-springStatus$c1 = as.numeric(levels(springStatus$c1)[ springStatus$c1 ])
-springStatus$c2 = as.numeric(levels(springStatus$c2)[ springStatus$c2 ])
-springStatus$ch = as.numeric(levels(springStatus$ch)[ springStatus$ch ])
-springStatus$stem_d1 = as.numeric(levels(springStatus$stem_d1)[ springStatus$stem_d1])
-
-str(springStatus)
 
 reborn = springStatus [ springStatus$earlySpringStatus %in% c(0, 2, 3) & springStatus$status == 1, ] 
 reborn
@@ -42,13 +31,10 @@ nowDead
 allDead = springStatus[ springStatus$status == 0, ]
 allDead  #### many recorded dead in early spring and again in late spring 
 
-
 springStatusUpdate = data.frame( springStatus[, c('ID', 'date', 'TAG', 'c1', 'c2' , 'ch' , 'canopy')],  
                                  infls = NA, lv_stems = NA, dd_stems = NA, stem_d1 = springStatus$stem_d1, stem_d2 = NA, 
                                  springStatus[, c('status', 'notes', 'herbivory')])
 
-max(springStatusUpdate$date)
-min(springStatusUpdate$date)
 springStatusUpdate$date = strftime(springStatusUpdate$date)
 
 db = dbConnect(SQLite(), '../sage.sqlite')

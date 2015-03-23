@@ -8,16 +8,13 @@
 
 
 rm(list = ls())
-library(xlsx)
 library(RSQLite)
 
 setwd('~/Documents/Kleinhesselink/Artemisia_tripartita_project/field_data/demographic_data/NewDemographicData/')
 
+earlySpringStatus = read.csv('2014_Early_Spring_Update.csv')
 
-earlySpringStatus = read.xlsx2('2014_Early_Spring_Update.xlsx', sheetIndex= 1 )
-
-earlySpringStatus$date2 = as.Date(as.numeric(levels(earlySpringStatus$date2))[earlySpringStatus$date2], origin = '1899-12-30')
-
+earlySpringStatus$date2 = as.Date(earlySpringStatus$date2, origin = '1899-12-30')
 
 earlySpringUpdate = data.frame( earlySpringStatus[, c('ID', 'date2', 'TAG')], c1 = NA, c2 = NA, ch = NA, 
                                 canopy = NA, infls = NA, lv_stems = NA, dd_stems = NA, stem_d1 = NA, stem_d2 = NA, 
@@ -28,8 +25,6 @@ names(earlySpringUpdate)[ c(2, 3, 13, 14)] <- c('date','field_tag', 'status', 'n
 earlySpringUpdate$date = strftime(earlySpringUpdate$date)
 
 earlySpringUpdate[ earlySpringUpdate$status == 0, ]
-
-earlySpringUpdate
 
 db = dbConnect(SQLite(), dbname = '../sage.sqlite')
 

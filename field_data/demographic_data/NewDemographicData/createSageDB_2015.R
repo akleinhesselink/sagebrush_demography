@@ -2,12 +2,10 @@
 #### runs all the earlier scripts to create the sagebrush database 
 #### need to be run in this order 
 ####
-#### needs to be in the same directory as raw excel and csv data files 
+#### needs to be in the same directory as raw csv data files 
 ####  
 
-library(xlsx)
 library(RSQLite)
-library(ggplot2)
 
 setwd('~/Documents/Kleinhesselink/Artemisia_tripartita_project/field_data/demographic_data/NewDemographicData/')
 

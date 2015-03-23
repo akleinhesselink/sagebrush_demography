@@ -4,16 +4,16 @@
 #### update plants table active and end_date columns
 
 rm(list = ls())
-library(xlsx)
 library(RSQLite)
 
 setwd('~/Documents/Kleinhesselink/Artemisia_tripartita_project/field_data/demographic_data/NewDemographicData/')
 
-earlySpringTransplants = read.xlsx2('2014_Early_Spring_Fall_Transplants_Update.xlsx', sheetIndex= 1 )
+earlySpringTransplants = read.csv('2014_Early_Spring_Fall_Transplants_Update.csv')
 names(earlySpringTransplants)
 
-earlySpringTransplants$date = as.Date(as.numeric(levels(earlySpringTransplants$date))[earlySpringTransplants$date], origin = '1899-12-30')
-earlySpringTransplants$spring = as.Date(as.numeric(levels(earlySpringTransplants$spring))[earlySpringTransplants$spring], origin = '1899-12-30')
+origin = '1899-12-30'
+earlySpringTransplants$date = as.Date(earlySpringTransplants$date, origin = origin)
+earlySpringTransplants$spring = as.Date(earlySpringTransplants$spring, origin = origin)
 
 fallTransplantsUpdate = data.frame(earlySpringTransplants[, c('spring', 'tag')], c1 = NA, c2 = NA, ch = NA, 
                                 canopy = NA, infls = NA, lv_stems = NA, dd_stems = NA, stem_d1 = NA, stem_d2 = NA, 

@@ -7,11 +7,9 @@
 #### and sometimes plants switch to a new  tag #
 
 rm(list = ls())
-library(xlsx)
 library(RSQLite)
 
 setwd('~/Documents/Kleinhesselink/Artemisia_tripartita_project/field_data/demographic_data/NewDemographicData/')
-
 
 raw_mid_summer = read.csv("2013_summer_survival_update.csv")
 raw_mid_summer$status = as.character( raw_mid_summer$status) 

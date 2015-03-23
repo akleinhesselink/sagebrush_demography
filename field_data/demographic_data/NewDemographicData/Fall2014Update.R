@@ -2,37 +2,24 @@
 #### 
 ####
 rm(list = ls())
-library(xlsx)
 library(RSQLite)
 setwd('~/Documents/Kleinhesselink/Artemisia_tripartita_project/field_data/demographic_data/NewDemographicData/')
 
-fallStatus = read.xlsx2('2014_FallData.xlsx', sheetIndex= 1 , startRow=1)
+fallStatus = read.csv('2014_FallData.csv')
 names(fallStatus)
 
 head( fallStatus[, 1:15])
 head( fallStatus[ is.na(fallStatus$date), ] ) 
 
-fallStatus$date = as.Date(as.numeric(levels(fallStatus$date))[fallStatus$date], origin = '1899-12-30')
-fallStatus$ID = as.integer(levels(fallStatus$ID))[fallStatus$ID]
+origin = '1899-12-30'
+fallStatus$date = as.Date(fallStatus$date, origin = origin)
 
+fallStatus$TAG = fallStatus$tag2
+fallStatus$TAG[ is.na( fallStatus$TAG ) ] <- fallStatus$tag1[ is.na( fallStatus$TAG ) ] 
 
-fallStatus$TAG = as.integer(levels(fallStatus$tag1))[fallStatus$tag1]
-fallStatus$canopy = as.numeric(levels(fallStatus$canopy)[ fallStatus$canopy ])
-fallStatus$c1 = as.numeric(levels(fallStatus$c1)[ fallStatus$c1 ])
-fallStatus$c2 = as.numeric(levels(fallStatus$c2)[ fallStatus$c2 ])
-fallStatus$ch = as.numeric(levels(fallStatus$ch)[ fallStatus$ch ])
-fallStatus$stem_d1 = as.numeric(levels(fallStatus$stemd1)[ fallStatus$stemd1])
-fallStatus$infls = as.numeric(levels(fallStatus$infls)[ fallStatus$infls ] )
-
-##### Need to change the class of the infls length data from factor to integer/numeric 
-allInflsColumns =  grep('i[1-9]+', names(fallStatus) )  
-inflsDataList = as.list( fallStatus[, allInflsColumns] ) 
-fallStatus[ , allInflsColumns] = lapply( inflsDataList,   FUN = function( x ){ as.numeric( levels( x )[ x ]) } )  
-
-str(fallStatus)
 
 fallStatusUpdate = data.frame( fallStatus[, c('ID', 'date', 'TAG', 'c1', 'c2' , 'ch' , 'canopy', 'infls')],  
-                                 lv_stems = NA, dd_stems = NA, stem_d1 = fallStatus$stem_d1, stem_d2 = NA, 
+                                 lv_stems = NA, dd_stems = NA, stem_d1 = fallStatus$stemd1, stem_d2 = NA, 
                                  fallStatus[, c('status', 'notes', 'herbivory')])
 
 fallStatusUpdate$date = strftime(fallStatusUpdate$date)
