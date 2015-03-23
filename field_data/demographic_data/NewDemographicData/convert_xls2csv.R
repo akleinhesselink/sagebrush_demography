@@ -10,14 +10,17 @@ XLSXpattern = '*\\.xlsx$'
 wd = system(command='pwd', intern = TRUE)
 setwd(wd)
 
-fileList = dir(path = '.', pattern= XLSXpattern)
+args = commandArgs( trailingOnly=TRUE)
+
+fileList = dir(path = args, pattern= XLSXpattern)
 
 startTime = Sys.time()
 count = 0
 
 for (f in fileList) { 
   print(paste('converting ', f))
-  tempDat = read.xlsx2( f, sheetIndex= 1)
+  path = file.path( args, f)
+  tempDat = read.xlsx2( path, sheetIndex= 1)
   write.table(x= tempDat, file = gsub(f, pattern= XLSXpattern, replacement = '.csv'), row.names = FALSE, sep = ',')
   count = count + 1 
 }
