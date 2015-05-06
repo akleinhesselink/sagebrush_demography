@@ -11,9 +11,6 @@ require( xlsx)
 
 XLSXpattern = '*\\.xlsx$'
 
-wd = system(command='pwd', intern = TRUE)
-setwd(wd)
-
 args = commandArgs( trailingOnly=TRUE)
 
 fileList = dir(path = args, pattern= XLSXpattern)
