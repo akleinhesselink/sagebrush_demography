@@ -1,0 +1,119 @@
+require(assertthat)
+
+checkSiteLabels = function( x ) { 
+  x = factor(x)
+  good_labels = LETTERS[ 1:13 ]
+  assert_that(is.factor(x)) 
+  length(setdiff( levels( x ), good_labels)) == 0
+}
+
+on_failure(checkSiteLabels) <- function( call, env) { 
+  paste0(deparse(call$x),  " outside of label range") 
+}
+
+is.wholenumber <- function(x ) { 
+  tol = .Machine$double.eps^0.5
+  abs(x - round(x)) < tol
+} 
+
+allWholeNumbers <- function( x, na.rm = FALSE ) { 
+  if( na.rm == TRUE) { 
+    x = x [ - which( is.na( x ))]
+  }
+  sum( !is.wholenumber( x ) ) == 0 
+}
+
+on_failure(allWholeNumbers) <- function( call, env) { 
+  paste0(deparse(call$x), " contains non-whole number")
+}
+
+checkTags = function( x , upper.limit= 2000, na.rm = TRUE) { 
+  assert_that ( is.numeric (x), 
+                min ( x , na.rm = na.rm) > 0, max( x , na.rm = na.rm) < upper.limit, 
+                allWholeNumbers( x, na.rm = na.rm ))
+}
+
+checkPlantID = function( x , upper.limit = 2000) { 
+  assert_that( is.numeric( x ), 
+               min( x )  > 0, max( x ) < upper.limit, 
+               allWholeNumbers( x ), 
+               checkDuplicateID ( x )) 
+}
+
+checkDuplicateID = function( x ) { 
+  sum( duplicated (x) ) == 0 
+}
+
+on_failure(checkDuplicateID) <- function( call, env) { 
+  paste0(deparse(call$x),  " contains duplicate IDs") 
+}
+
+checkDate = function( x, na.rm = FALSE ) {
+  date = as.Date(x)
+  assert_that(min( date, na.rm= na.rm )  > as.Date( '2012-10-01' ), max( date, na.rm = na.rm )  < Sys.Date())
+}
+
+checkStatus = function( x ) { 
+  assert_that( is.numeric(x), min(x) >= 0, max(x) < 4, allWholeNumbers( x ))
+}
+
+checkHerbivory <- function( x ) { 
+  assert_that( is.numeric(x), min(x) >= 0, max(x) < 2, allWholeNumbers( x ))  
+}
+
+checkPositiveRange <- function( x, upper.limit = 200) { 
+  assert_that( is.numeric( x), min( x, na.rm= TRUE) >= 0, max( x, na.rm = TRUE) < upper.limit )
+}
+
+checkMonthRange <- function( x , early = 9, late = 11 ) { 
+  date = as.Date( x )
+  months.Date( date ) %in% month.name [early:late ] 
+}
+
+checkAllMonths <- function( x , early = 9 , late = 11 ) { 
+  sum(!checkMonthRange(x, early = early, late = late)) == 0 
+}
+
+on_failure(checkAllMonths) <- function( call, env) { 
+  paste0(deparse(call$x),  " months out of range") 
+}
+
+checkActive <- function( x, active ) { 
+  length( setdiff ( x , active) ) == 0
+}
+
+on_failure( checkActive ) <- function( call, env) { 
+  paste0(deparse(call$x), " some ID's not found in active plants")
+}
+
+checkForMissing <- function( x, active ) { 
+  missing = setdiff( active, x )
+  if (length(missing) > 0 ) { 
+    print( 'Plants not found in status update: ')
+    missing
+  }
+}
+
+#### tests of checks 
+
+ID.1 = seq(-1, 10 , 1)
+ID.2 = seq( 1000, 3000, 1)
+ID.3 = c( 1.1, 2, 3, 4 )
+
+StatusPass = c( 0 , 1, 2, 3)
+StatusFail = c( 0 , 1.1, 3, 4)
+
+see_if( checkStatus( StatusPass) ) 
+see_if( checkStatus(StatusFail) )   
+
+see_if(checkDate( c('2013-10-01', NA), na.rm = TRUE))
+
+see_if(checkDate( c(NA, '2013-01-01'), na.rm = TRUE))
+
+see_if(checkDate( '2011-01-01'))
+see_if(checkDate( '2016-01-01'))
+
+see_if(checkPlantID( ID.1))
+see_if(checkPlantID( ID.2))
+see_if(checkPlantID( ID.3))
+
