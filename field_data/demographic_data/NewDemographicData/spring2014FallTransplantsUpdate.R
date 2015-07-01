@@ -5,8 +5,7 @@
 
 rm(list = ls())
 library(RSQLite)
-
-setwd('~/Documents/Kleinhesselink/Artemisia_tripartita_project/field_data/demographic_data/NewDemographicData/')
+source( 'check_db_functions.R' )
 
 earlySpringTransplants = read.csv('2014_Early_Spring_Fall_Transplants_Update.csv')
 names(earlySpringTransplants)
@@ -19,7 +18,6 @@ fallTransplantsUpdate = data.frame(earlySpringTransplants[, c('spring', 'tag')],
                                 canopy = NA, infls = NA, lv_stems = NA, dd_stems = NA, stem_d1 = NA, stem_d2 = NA, 
                                 earlySpringTransplants[, c('status', 'notes', 'herbivory')])
 
-names(fallTransplantsUpdate)
 names(fallTransplantsUpdate)[ c(1, 2)] <- c('date','field_tag') #### standard names for headers 
 
 fallTransplantsUpdate$date = strftime(fallTransplantsUpdate$date)
@@ -41,6 +39,26 @@ names(fallTransplantsUpdate)
 head(fallTransplantsUpdate)
 nrow(fallTransplantsUpdate)
 
+fallTransplantsUpdate$herbivory[  is.na( fallTransplantsUpdate$herbivory  ) ]  <- 0
+fallTransplantsUpdate = fallTransplantsUpdate[ !is.na(fallTransplantsUpdate$status),  ] ### drop status NA
+fallTransplantsUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] <- as.numeric( unlist( fallTransplantsUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] ))
+
+#### run checks 
+see_if( checkStatus (fallTransplantsUpdate$status))
+see_if( checkPlantID ( fallTransplantsUpdate$ID))
+see_if( checkTags( fallTransplantsUpdate$field_tag, na.rm = FALSE))
+see_if( checkDate( fallTransplantsUpdate$date, na.rm= FALSE ))
+see_if( checkHerbivory ( fallTransplantsUpdate$herbivory ))
+see_if( checkPositiveRange ( fallTransplantsUpdate$ch, upper.limit= 200))
+see_if( checkPositiveRange ( fallTransplantsUpdate$c1, upper.limit = 200))
+see_if( checkPositiveRange( fallTransplantsUpdate$c2, upper.limit = 200))
+see_if( checkPositiveRange( fallTransplantsUpdate$stem_d1, upper.limit = 100))
+see_if( checkPositiveRange( fallTransplantsUpdate$stem_d2, upper.limit = 100))
+see_if( checkPositiveRange( fallTransplantsUpdate$canopy, upper.limit = 150))
+see_if( checkPositiveRange( fallTransplantsUpdate$infls, upper.limit = 900))
+see_if( checkAllMonths( fallTransplantsUpdate$date[ which( fallTransplantsUpdate$infls > 0 )], early= 9, late = 11))
+
+
 dbWriteTable(db, name = 'status', value = fallTransplantsUpdate, 
              append = TRUE, row.names = FALSE)
 
@@ -48,8 +66,6 @@ res = dbSendQuery( db, "SELECT ID, field_tag, date FROM status WHERE date(date) 
                    AND status = 0")
 wintersDead = fetch(res, -1)
 dbClearResult(res)
-
-tail(wintersDead)
 
 for(i in 1:nrow(wintersDead)){ 
   ID = wintersDead[i, 'ID']

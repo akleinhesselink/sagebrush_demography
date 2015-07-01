@@ -8,8 +8,7 @@
 
 rm(list = ls())
 library(RSQLite)
-
-setwd('~/Documents/Kleinhesselink/Artemisia_tripartita_project/field_data/demographic_data/NewDemographicData/')
+source('check_db_functions.R')
 
 fallStatus = read.csv('2013_Fall_update.csv')
 fallTransplants = read.csv('2013_NewFallTransplantsStatus.csv')
@@ -32,6 +31,25 @@ fallTransplantsUpdate = fallTransplants[, c('date', 'field_tag', 'c1', 'c2', 'ch
 
 db = dbConnect(SQLite(), dbname = '../sage.sqlite')
 
+fallStatusUpdate$herbivory[ is.na( fallStatusUpdate$herbivory )  ] <- 0 
+fallStatusUpdate$stem_d2 = as.numeric( fallStatusUpdate$stem_d2) 
+
+#### run Checks 
+see_if( checkPlantID( fallStatusUpdate$ID ))
+see_if( checkStatus( fallStatusUpdate$status))
+see_if( checkTags( fallStatusUpdate$field_tag, na.rm = FALSE))
+see_if( checkDate( fallStatusUpdate$date, na.rm= FALSE ))
+see_if( checkHerbivory ( fallStatusUpdate$herbivory ))
+see_if( checkPositiveRange ( fallStatusUpdate$ch, upper.limit= 200))
+see_if( checkPositiveRange ( fallStatusUpdate$c1, upper.limit = 200))
+see_if( checkPositiveRange( fallStatusUpdate$c2, upper.limit = 200))
+see_if( checkPositiveRange( fallStatusUpdate$stem_d1, upper.limit = 100))
+see_if( checkPositiveRange( fallStatusUpdate$stem_d2, upper.limit = 100))
+see_if( checkPositiveRange( fallStatusUpdate$canopy, upper.limit = 150))
+see_if( checkPositiveRange( fallStatusUpdate$infls, upper.limit = 900))
+see_if( checkAllMonths( fallStatusUpdate$date[ which( fallStatusUpdate$infls > 0 )], early= 9, late = 11))
+
+
 dbWriteTable(db, name = 'status', value = fallStatusUpdate, 
              append = TRUE, row.names = FALSE)
 
@@ -42,9 +60,31 @@ dbClearResult(res)
 
 fallTransplantsUpdate = merge(class5s, fallTransplantsUpdate, by.x = 'tag1', by.y = 'field_tag')
 names(fallTransplantsUpdate)[1] <- 'field_tag'
-names(fallTransplantsUpdate)
+
 fallTransplantsUpdate = cbind(ID = fallTransplantsUpdate$ID, date = fallTransplantsUpdate$date, 
                               field_tag = fallTransplantsUpdate$field_tag, fallTransplantsUpdate[, -c(1:3)])
+
+fallTransplantsUpdate$herbivory <- 0 
+fallTransplantsUpdate$stem_d2 <- as.numeric(fallTransplantsUpdate$stem_d2)
+fallTransplantsUpdate$canopy <- as.numeric( fallTransplantsUpdate$canopy)
+fallTransplantsUpdate$infls <- 0
+
+#### run checks 
+see_if( checkPlantID( fallTransplantsUpdate$ID))
+see_if( checkStatus( fallTransplantsUpdate$status))
+see_if( checkTags( fallTransplantsUpdate$field_tag, na.rm = FALSE))
+see_if( checkDate( fallTransplantsUpdate$date, na.rm= FALSE ))
+see_if( checkHerbivory ( fallTransplantsUpdate$herbivory ))
+see_if( checkPositiveRange ( fallTransplantsUpdate$ch, upper.limit= 200))
+see_if( checkPositiveRange ( fallTransplantsUpdate$c1, upper.limit = 200))
+see_if( checkPositiveRange( fallTransplantsUpdate$c2, upper.limit = 200))
+see_if( checkPositiveRange( fallTransplantsUpdate$stem_d1, upper.limit = 100))
+see_if( checkPositiveRange( fallTransplantsUpdate$stem_d2, upper.limit = 100))
+see_if( checkPositiveRange( fallTransplantsUpdate$canopy, upper.limit = 150))
+see_if( checkPositiveRange( fallTransplantsUpdate$infls, upper.limit = 900))
+see_if( checkAllMonths( fallTransplantsUpdate$date[ which( fallTransplantsUpdate$infls > 0 )], early= 9, late = 11))
+
+
 
 dbWriteTable(db, name = 'status', value = fallTransplantsUpdate, 
              append = TRUE, row.names = FALSE)

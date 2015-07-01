@@ -9,8 +9,7 @@
 
 rm(list = ls())
 library(RSQLite)
-
-setwd('~/Documents/Kleinhesselink/Artemisia_tripartita_project/field_data/demographic_data/NewDemographicData/')
+source('check_db_functions.R')
 
 earlySpringStatus = read.csv('2014_Early_Spring_Update.csv')
 
@@ -23,13 +22,34 @@ earlySpringUpdate = data.frame( earlySpringStatus[, c('ID', 'date2', 'TAG')], c1
 names(earlySpringUpdate)[ c(2, 3, 13, 14)] <- c('date','field_tag', 'status', 'notes') #### standard names for headers 
 
 earlySpringUpdate$date = strftime(earlySpringUpdate$date)
-
 earlySpringUpdate[ earlySpringUpdate$status == 0, ]
+earlySpringUpdate$herbivory[  is.na( earlySpringUpdate$herbivory  ) ]  <- 0
+earlySpringUpdate = earlySpringUpdate[ !is.na(earlySpringUpdate$status),  ] ### drop status NA
+
+earlySpringUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] <- as.numeric( unlist( earlySpringUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] ))
 
 db = dbConnect(SQLite(), dbname = '../sage.sqlite')
 
+#### run checks 
+see_if( checkStatus (earlySpringUpdate$status))
+see_if( checkPlantID ( earlySpringUpdate$ID))
+see_if( checkTags( earlySpringUpdate$field_tag, na.rm = FALSE))
+see_if( checkDate( earlySpringUpdate$date, na.rm= FALSE ))
+see_if( checkHerbivory ( earlySpringUpdate$herbivory ))
+
+see_if( checkPositiveRange ( earlySpringUpdate$ch, upper.limit= 200))
+see_if( checkPositiveRange ( earlySpringUpdate$c1, upper.limit = 200))
+see_if( checkPositiveRange( earlySpringUpdate$c2, upper.limit = 200))
+see_if( checkPositiveRange( earlySpringUpdate$stem_d1, upper.limit = 100))
+see_if( checkPositiveRange( earlySpringUpdate$stem_d2, upper.limit = 100))
+see_if( checkPositiveRange( earlySpringUpdate$canopy, upper.limit = 150))
+see_if( checkPositiveRange( earlySpringUpdate$infls, upper.limit = 900))
+see_if( checkAllMonths( earlySpringUpdate$date[ which( earlySpringUpdate$infls > 0 )], early= 9, late = 11))
+
+
 dbWriteTable(db, name = 'status', value = earlySpringUpdate, 
              append = TRUE, row.names = FALSE)
+
 
 res = dbSendQuery( db, "SELECT ID, field_tag, date, status FROM status WHERE date(date) > date('2013-09-01') 
                    AND date(date) < date('2014-01-01')")
@@ -49,8 +69,6 @@ res = dbSendQuery( db, "SELECT ID, field_tag, date FROM status WHERE date(date) 
                    AND date(date) <= date('2014-05-16') AND status = 0")
 wintersDead = fetch(res, -1)
 dbClearResult(res)
-
-wintersDead
 
 for(i in 1:nrow(wintersDead)){ 
   ID = wintersDead[i, 'ID']

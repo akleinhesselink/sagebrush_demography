@@ -7,8 +7,7 @@
 
 rm(list = ls())
 library(RSQLite)
-
-setwd('~/Documents/Kleinhesselink/Artemisia_tripartita_project/field_data/demographic_data/NewDemographicData/')
+source( 'check_db_functions.R')
 
 springStatus = read.csv('2014_spring_size_update_data.csv')
 
@@ -41,6 +40,27 @@ db = dbConnect(SQLite(), '../sage.sqlite')
 
 springStatusUpdate[ springStatusUpdate$ID == 81, 'ch' ] <- NA
 springStatusUpdate[ springStatusUpdate$ID == 81,  ] 
+
+springStatusUpdate$herbivory[  is.na( springStatusUpdate$herbivory  ) ]  <- 0
+springStatusUpdate$status[ is.na( springStatusUpdate$status ) ] <- 2 #### plant 676 was missing, change status to "2" 
+names(springStatusUpdate)[ which( names( springStatusUpdate) == 'TAG' ) ]  <- 'field_tag'  #### standardize tag name 
+springStatusUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] <- as.numeric( unlist( springStatusUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] ))
+
+#### run checks 
+see_if( checkStatus (springStatusUpdate$status))
+see_if( checkPlantID ( springStatusUpdate$ID))
+see_if( checkTags( springStatusUpdate$field_tag, na.rm = FALSE))
+see_if( checkDate( springStatusUpdate$date, na.rm= FALSE ))
+see_if( checkHerbivory ( springStatusUpdate$herbivory ))
+see_if( checkPositiveRange ( springStatusUpdate$ch, upper.limit= 200))
+see_if( checkPositiveRange ( springStatusUpdate$c1, upper.limit = 200))
+see_if( checkPositiveRange( springStatusUpdate$c2, upper.limit = 200))
+see_if( checkPositiveRange( springStatusUpdate$stem_d1, upper.limit = 100))
+see_if( checkPositiveRange( springStatusUpdate$stem_d2, upper.limit = 100))
+see_if( checkPositiveRange( springStatusUpdate$canopy, upper.limit = 150))
+see_if( checkPositiveRange( springStatusUpdate$infls, upper.limit = 900))
+see_if( checkAllMonths( springStatusUpdate$date[ which( springStatusUpdate$infls > 0 )], early= 9, late = 11))
+
 
 dbWriteTable(db, name = 'status', value = springStatusUpdate, append = TRUE, row.names = FALSE)
 
