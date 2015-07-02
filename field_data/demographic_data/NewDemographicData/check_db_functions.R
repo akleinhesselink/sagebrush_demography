@@ -82,8 +82,7 @@ checkActive <- function( x, active ) {
   BadIDs = setdiff ( x , active) 
   if( length( BadIDs) > 0  ) { 
     print("Some ID's in status update not found among active plants: ")
-    print( BadIDs )  
-    assert_that(length(BadIDs) == 0) 
+    return( BadIDs)
   } 
 }
 

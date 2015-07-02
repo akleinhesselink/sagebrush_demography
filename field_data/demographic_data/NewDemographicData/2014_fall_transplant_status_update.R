@@ -22,12 +22,12 @@ names(fallTransplantsUpdate)[ c(1, 2)] <- c('date','field_tag') #### standard na
 
 fallTransplantsUpdate$date = strftime(fallTransplantsUpdate$date)
 
-db = dbConnect(SQLite(), dbname = '../sage.sqlite')
+db = dbConnect(SQLite(), dbname = 'sage.sqlite')
 
 res = dbSendQuery( db, "SELECT ID, tag1 FROM plants WHERE class = 5")
 class5s = fetch(res, -1)
 dbClearResult(res)
-class5s
+
 dbListFields(db, 'status')
 
 fallTransplantsUpdate = merge(class5s, fallTransplantsUpdate, by.x = 'tag1', by.y = 'field_tag')
@@ -35,13 +35,17 @@ names(fallTransplantsUpdate)[1] <- 'field_tag'
 names(fallTransplantsUpdate)
 fallTransplantsUpdate = cbind(ID = fallTransplantsUpdate$ID, date = fallTransplantsUpdate$date, 
                               field_tag = fallTransplantsUpdate$field_tag, fallTransplantsUpdate[, -c(1:3)])
-names(fallTransplantsUpdate)
-head(fallTransplantsUpdate)
-nrow(fallTransplantsUpdate)
 
 fallTransplantsUpdate$herbivory[  is.na( fallTransplantsUpdate$herbivory  ) ]  <- 0
 fallTransplantsUpdate = fallTransplantsUpdate[ !is.na(fallTransplantsUpdate$status),  ] ### drop status NA
 fallTransplantsUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] <- as.numeric( unlist( fallTransplantsUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] ))
+
+fallTransplantsUpdate$date = as.character( fallTransplantsUpdate$date )
+
+lastDate = max(fallTransplantsUpdate$date)
+res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1 AND date( start_date) <= date( ? ) AND class = 5" , list( lastDate))
+active = fetch( res, -1)
+dbClearResult( res )
 
 #### run checks 
 see_if( checkStatus (fallTransplantsUpdate$status))
@@ -58,6 +62,9 @@ see_if( checkPositiveRange( fallTransplantsUpdate$canopy, upper.limit = 150))
 see_if( checkPositiveRange( fallTransplantsUpdate$infls, upper.limit = 900))
 see_if( checkAllMonths( fallTransplantsUpdate$date[ which( fallTransplantsUpdate$infls > 0 )], early= 9, late = 11))
 
+checkActive(fallTransplantsUpdate$ID, active$ID )
+
+checkForMissing( fallTransplantsUpdate$ID, active$ID ) #### 
 
 dbWriteTable(db, name = 'status', value = fallTransplantsUpdate, 
              append = TRUE, row.names = FALSE)

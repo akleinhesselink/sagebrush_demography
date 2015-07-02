@@ -36,15 +36,28 @@ springStatusUpdate = data.frame( springStatus[, c('ID', 'date', 'TAG', 'c1', 'c2
 
 springStatusUpdate$date = strftime(springStatusUpdate$date)
 
-db = dbConnect(SQLite(), '../sage.sqlite')
+db = dbConnect(SQLite(), 'sage.sqlite')
 
 springStatusUpdate[ springStatusUpdate$ID == 81, 'ch' ] <- NA
 springStatusUpdate[ springStatusUpdate$ID == 81,  ] 
 
 springStatusUpdate$herbivory[  is.na( springStatusUpdate$herbivory  ) ]  <- 0
-springStatusUpdate$status[ is.na( springStatusUpdate$status ) ] <- 2 #### plant 676 was missing, change status to "2" 
+
+springStatusUpdate$status[ springStatusUpdate$ID ==676 ] <- 0 #### plant 676 was gone, change status to "0" 
+
 names(springStatusUpdate)[ which( names( springStatusUpdate) == 'TAG' ) ]  <- 'field_tag'  #### standardize tag name 
 springStatusUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] <- as.numeric( unlist( springStatusUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] ))
+
+newSeedling = springStatusUpdate[ which( springStatusUpdate$ID == 411 ),  ] ##### new seedling 
+newSeedling$status = 1
+newSeedling$ID = 1103
+newSeedling$notes = "New seedling located near old plant that died"
+springStatusUpdate <- rbind( springStatusUpdate, newSeedling)
+
+lastDate = max(springStatusUpdate$date)
+res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1 AND date( start_date) <= date( ? )" , list( lastDate))
+active = fetch( res, -1)
+dbClearResult( res )
 
 #### run checks 
 see_if( checkStatus (springStatusUpdate$status))
@@ -60,6 +73,15 @@ see_if( checkPositiveRange( springStatusUpdate$stem_d2, upper.limit = 100))
 see_if( checkPositiveRange( springStatusUpdate$canopy, upper.limit = 150))
 see_if( checkPositiveRange( springStatusUpdate$infls, upper.limit = 900))
 see_if( checkAllMonths( springStatusUpdate$date[ which( springStatusUpdate$infls > 0 )], early= 9, late = 11))
+
+Bad <- checkActive( springStatusUpdate$ID, active$ID)
+assert_that( length(Bad) == 0 )
+
+missing <- checkForMissing( springStatusUpdate$ID, active$ID )
+assert_that( length( missing) == 0 ) 
+
+springStatusUpdate[ which( springStatusUpdate$ID %in% Bad & springStatusUpdate$status == 1), ] ##### live plants 
+springStatusUpdate[ which( springStatusUpdate$ID %in% Bad & springStatusUpdate$status == 3), ] ##### uncertain plants 
 
 
 dbWriteTable(db, name = 'status', value = springStatusUpdate, append = TRUE, row.names = FALSE)
@@ -78,7 +100,7 @@ for(i in 1:nrow(springDeadUpdate)){
   dbClearResult(res)
 }
 
-res = dbSendQuery(db, "UPDATE status SET stem_d1 = NULL WHERE (status != 1 OR stem_d1 = 0)")
+res = dbSendQuery(db, "UPDATE status SET stem_d1 = NULL WHERE stem_d1 = 0")
 dbClearResult(res)
 
 res = dbSendQuery(db, "UPDATE status SET ch = NULL WHERE (status != 1 OR ch = 0)")
