@@ -11,6 +11,7 @@ library(RSQLite)
 source('check_db_functions.R')
 
 fallStatus = read.csv('2013_Fall_update.csv')
+  
 fallTransplants = read.csv('2013_NewFallTransplantsStatus.csv')
 
 origin = '1899-12-30'
