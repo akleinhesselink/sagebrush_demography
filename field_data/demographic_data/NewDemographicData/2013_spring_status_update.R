@@ -37,7 +37,8 @@ firstStatus[ is.na( firstStatus$infls ) , 'infls'] <- 0
 ###### connect the database 
 db = dbConnect(SQLite(), dbname = 'sage.sqlite')
 
-res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1")
+lastDate = max(firstStatus$date)
+res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1 AND start_date <= ?", list(lastDate ))
 active = fetch( res, -1)
 dbClearResult( res )
 

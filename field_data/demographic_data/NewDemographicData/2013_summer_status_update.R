@@ -72,7 +72,8 @@ SummerStatusUpdate$herbivory[ is.na( SummerStatusUpdate$herbivory) ] <- 0
 SummerStatusUpdate$infls <- as.numeric(SummerStatusUpdate$infls)
 SummerStatusUpdate[ is.na( SummerStatusUpdate$infls ) , 'infls'] <- 0 
 
-res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1")
+lastDate = max(SummerStatusUpdate$date)
+res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1 AND start_date <= ?", list(lastDate))
 active = fetch( res, -1)
 dbClearResult( res )
 
@@ -92,10 +93,8 @@ see_if( checkPositiveRange( SummerStatusUpdate$infls, upper.limit = 900))
 see_if( checkAllMonths( SummerStatusUpdate$date[ which( SummerStatusUpdate$infls > 0 )], early= 9, late = 11))
 
 checkActive( x= SummerStatusUpdate$ID, active=active$ID) 
-
 missing = checkForMissing( x = SummerStatusUpdate$ID, active = active$ID)
-missing = missing [ missing < 855 ]
-missing
+
 
 dbWriteTable(db, name = 'status', value = SummerStatusUpdate, 
              append = TRUE, row.names = FALSE)
