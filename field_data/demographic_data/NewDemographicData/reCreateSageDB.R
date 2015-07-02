@@ -3,13 +3,9 @@ library(RSQLite)
 
 source( 'check_db_functions.R')
 
-setwd('~/Documents/Kleinhesselink/Artemisia_tripartita_project/field_data/demographic_data/NewDemographicData/')
-
-
 plants = read.csv('MasterPlantsTable.csv')
 firstStatus = read.csv('2012_Fall_to_2013_SpringStatus.csv')
 sites = read.csv('../../siteCharacteristics/site_positions.csv')
-
 
 #### change numeric to date 
 
@@ -101,11 +97,9 @@ res = dbSendQuery( db, 'UPDATE plants SET treatment = Null WHERE treatment != "c
 dbClearResult(res)
 
 res = dbSendQuery( db, "SELECT ID, field_tag, date FROM status WHERE date(date) > date('2013-04-01') AND 
-                   date(date) < date('2013-08-01') AND status = 0")
+                   date(date) < date('2013-08-01') AND (status = 0 OR status = 2)")
 springDeadUpdate = fetch(res)
 dbClearResult(res)
-
-names(springDeadUpdate) 
 
 for(i in 1:nrow(springDeadUpdate)){ 
   ID = springDeadUpdate[i, 'ID']

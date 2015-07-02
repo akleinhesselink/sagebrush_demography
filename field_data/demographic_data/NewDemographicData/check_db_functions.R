@@ -79,11 +79,12 @@ on_failure(checkAllMonths) <- function( call, env) {
 }
 
 checkActive <- function( x, active ) { 
-  length( setdiff ( x , active) ) == 0
-}
-
-on_failure( checkActive ) <- function( call, env) { 
-  paste0(deparse(call$x), " some ID's not found in active plants")
+  BadIDs = setdiff ( x , active) 
+  if( length( BadIDs) > 0  ) { 
+    print("Some ID's in status update not found plants table: ")
+    print( BadIDs ) 
+    stop( " bad IDs! ") 
+  } 
 }
 
 checkForMissing <- function( x, active ) { 
