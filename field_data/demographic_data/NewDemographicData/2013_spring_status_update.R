@@ -60,21 +60,23 @@ see_if( checkAllMonths( firstStatus$date[ which( firstStatus$infls > 0 )], early
 checkActive( x=firstStatus$ID , active= active$ID)
 checkForMissing( firstStatus$ID, active = active$ID)
 
+firstStatus [ firstStatus$status == 2, ]  
+
 dbWriteTable(db, name = 'status', field.types = as.list(statusTypes), 
              value = firstStatus, row.names = FALSE, overwrite = TRUE)
 
 res = dbSendQuery( db, "SELECT ID, field_tag, date FROM status WHERE date(date) > date('2013-04-01') AND 
-                   date(date) < date('2013-08-01') AND (status = 0 OR status = 2)")
+                   date(date) < date('2013-08-01') AND (status = 0 OR ID = 69 OR ID = 632 OR ID = 733 OR ID = 800)") #### Mark reused tags or plants that were dug up as inactive  
 springDeadUpdate = fetch(res)
 dbClearResult(res)
 
 for(i in 1:nrow(springDeadUpdate)){ 
   ID = springDeadUpdate[i, 'ID']
-  date = springDeadUpdate[i, 'date']
-  
+  date = springDeadUpdate[i, 'date']  
   res = dbSendQuery( db, "UPDATE plants SET active = 0, end_date = ? WHERE ID = ? AND active = 1", 
                      list(date, ID))
   dbClearResult(res)
 }
+
 
 dbDisconnect(db)            # Close connection

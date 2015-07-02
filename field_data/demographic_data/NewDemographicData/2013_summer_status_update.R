@@ -94,13 +94,15 @@ see_if( checkAllMonths( SummerStatusUpdate$date[ which( SummerStatusUpdate$infls
 
 checkActive( x= SummerStatusUpdate$ID, active=active$ID) 
 missing = checkForMissing( x = SummerStatusUpdate$ID, active = active$ID)
+missing #### plants that should be marked as missing status 2 
 
+SummerStatusUpdate[ SummerStatusUpdate$status == 2, ]  #### watch for these IDs in future updates 
 
 dbWriteTable(db, name = 'status', value = SummerStatusUpdate, 
              append = TRUE, row.names = FALSE)
 
 res = dbSendQuery( db, "SELECT ID, field_tag, date FROM status WHERE date(date) > date('2013-07-30') AND 
-                   date(date) < date('2013-09-01') AND (status = 0 OR status = 2)")
+                   date(date) < date('2013-09-01') AND (status = 0 OR ID = 640 OR ID = 835)")  #### adding these IDs because they were lost and not refound
 
 SummerDeadUpdate = fetch(res)
 dbClearResult(res)

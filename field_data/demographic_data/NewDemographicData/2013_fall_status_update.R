@@ -35,6 +35,8 @@ db = dbConnect(SQLite(), dbname = 'sage.sqlite')
 fallStatusUpdate$herbivory[ is.na( fallStatusUpdate$herbivory )  ] <- 0 
 fallStatusUpdate$stem_d2 = as.numeric( fallStatusUpdate$stem_d2) 
 
+sort( fallStatusUpdate$ID[ fallStatusUpdate$status == 3  ]  ) 
+sort( fallStatusUpdate$ID[ fallStatusUpdate$status == 2 ] )
 
 lastDate = max(fallStatusUpdate$date)
 res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1 AND date( start_date) <= date( ? )" , list( lastDate))
@@ -58,6 +60,9 @@ see_if( checkAllMonths( fallStatusUpdate$date[ which( fallStatusUpdate$infls > 0
 
 checkActive( x=fallStatusUpdate$ID , active= active$ID)
 checkForMissing( fallStatusUpdate$ID, active = active$ID)
+
+fallStatusUpdate[ fallStatusUpdate$status == 2, ]  
+fallStatusUpdate$status[ fallStatusUpdate$ID == 10 ] <- 0 ##### 10 shows up as dead in the spring so I assign it a 0 here.
 
 dbWriteTable(db, name = 'status', value = fallStatusUpdate, 
              append = TRUE, row.names = FALSE)
@@ -107,7 +112,7 @@ dbWriteTable(db, name = 'status', value = fallTransplantsUpdate,
              append = TRUE, row.names = FALSE)
 
 res = dbSendQuery( db, "SELECT ID, field_tag, date FROM status WHERE date(date) > date('2013-08-30') AND 
-                   date(date) < date('2014-01-01') AND (status = 0 OR status = 2)")
+                   date(date) < date('2014-01-01') AND (status = 0 OR ID = 261)") #### and add missing plant 261 
 
 fallDeadUpdate = fetch(res)
 dbClearResult(res)
