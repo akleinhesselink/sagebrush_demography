@@ -95,8 +95,23 @@ checkForMissing <- function( x, active ) {
   }
 }
 
-#### tests of checks 
+checkSpecies <- function( x ) { 
+  x <- factor( x )
+  identical(levels(x), y = levels( factor(c('ATP', 'ATV')) ))                        
+}
 
+checkClasses <- function ( x ) { 
+  x <- factor( x )
+  identical( levels(x), levels(factor(1:6)))
+}
+
+checkTreatment <- function ( x ) { 
+  x <- factor(x)
+  identical( levels( x ), levels( factor(c('control', 'remove'))))
+}
+
+
+#### tests of checks 
 ID.1 = seq(-1, 10 , 1)
 ID.2 = seq( 1000, 3000, 1)
 ID.3 = c( 1.1, 2, 3, 4 )
