@@ -22,11 +22,15 @@ fallStatusUpdate = data.frame( fallStatus[, c('ID', 'date', 'TAG', 'c1', 'c2' , 
 
 fallStatusUpdate$date = strftime(fallStatusUpdate$date)
 
+fallStatusUpdate$status[ fallStatusUpdate$ID == 1052 ] <- 0 #### Was dead in the spring so assigning it dead here 
+
 fallDeadUpdate = subset( fallStatusUpdate, status == 0)
 
 fallStatusUpdate$herbivory[  is.na( fallStatusUpdate$herbivory  ) ]  <- 0
 
 fallStatusUpdate = fallStatusUpdate[ !is.na( fallStatusUpdate$status ),  ] #### drop those with NA for status
+
+
 
 names(fallStatusUpdate)[ which( names( fallStatusUpdate) == 'TAG' ) ]  <- 'field_tag'  #### standardize tag name 
 fallStatusUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] <- as.numeric( unlist( fallStatusUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] ))
@@ -64,16 +68,13 @@ missing
 
 dbWriteTable(db, name = 'status', value = fallStatusUpdate, append = TRUE, row.names = FALSE)
 
-res = dbSendQuery(db, 'SELECT * FROM status WHERE ID = 832')
-testPlant = fetch(res, -1)
-dbClearResult(res)
-testPlant
+
 
 for(i in 1:nrow(fallDeadUpdate)){ 
   ID = fallDeadUpdate[i, 'ID']
   date = fallDeadUpdate[i, 'date']
   res = dbSendQuery( db, "UPDATE plants SET active = 0, end_date = ? 
-                     WHERE ID = ? AND active = 1", list(date, ID))
+                     WHERE ID = ? AND active = 1", list(date, ID)) 
   dbClearResult(res)
 }
 
