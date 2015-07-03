@@ -81,7 +81,7 @@ on_failure(checkAllMonths) <- function( call, env) {
 checkActive <- function( x, active ) { 
   BadIDs = setdiff ( x , active) 
   if( length( BadIDs) > 0  ) { 
-    print("Some ID's in status update not found among active plants: ")
+    warning( "Some ID's in status update not found among active plants: ")
     return( BadIDs)
   } 
 }
@@ -89,7 +89,7 @@ checkActive <- function( x, active ) {
 checkForMissing <- function( x, active ) { 
   missing = setdiff( active, x )
   if (length(missing) > 0 ) { 
-    print( 'Plants not found in status update: ')
+    warning( 'Some plants missing from status update: ')
     missing
   }
 }
