@@ -9,7 +9,6 @@ firstStatus = read.csv('2012_Fall_to_2013_SpringStatus.csv')
 origin = '1904-01-01' ### use correct origin for microsoft excel 
 
 firstStatus$date = strftime(as.Date(firstStatus$date, origin = origin))
-firstStatus[ firstStatus$ID %in% c(616, 619), ]
 
 firstStatus <- firstStatus [ !is.na( firstStatus$ID), ]  #### drop where ID == NA's
 print( firstStatus[ is.na( firstStatus$date)]) #### print missing dates 
@@ -64,7 +63,24 @@ Bad
 missing = checkForMissing( firstStatus$ID, active = active$ID)
 missing
 
-firstStatus [ firstStatus$status == 2, ]  
+
+old = subset(firstStatus, as.Date(date) < '2013-01-01')
+new = subset(firstStatus, as.Date( date) > '2013-01-01')
+old$area <- (old$c1/2)*(old$c2/2)*pi
+new$area <- (new$c1/2)*(new$c2/2)*pi
+old = merge(active[,c('site', 'species', 'class', 'ID') ], old, by = 'ID')
+
+statusChangeReport( old = old, new = new )
+
+showSizeDiff( old = old, new = new, measure= 'ch')
+showSizeDiff( old = old, new = new, measure = 'area') #### plant 149 may be too big in the fall
+showSizeDiff( old = old[ old$class == 1, ], new = new, measure = 'stem_d1')
+
+graphics.off( )
+
+firstStatus$notes = as.character(firstStatus$notes)
+firstStatus$notes[ firstStatus$ID == 149 ]<- c('fall 2012 measurement may include separate plant nearby', '')
+
 
 dbWriteTable(db, name = 'status', field.types = as.list(statusTypes), 
              value = firstStatus, row.names = FALSE, overwrite = TRUE)

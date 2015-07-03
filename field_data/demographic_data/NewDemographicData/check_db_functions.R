@@ -1,5 +1,6 @@
 require(assertthat)
 
+
 checkSiteLabels = function( x ) { 
   x = factor(x)
   good_labels = LETTERS[ 1:13 ]
@@ -160,16 +161,18 @@ statusChangeReport <- function( old, new ) {
   
   print( "Lost to Lost: ")
   categorizeStatusChange( merged = merged, from.status=2, to.status=2)  
-  
+
+  waitkey()
 }
 
 categorizeStatusChange = function( merged, from.status, to.status ){   
   #### merged is a dataframe with the old and new status's merged by ID
+  showColumns = c('ID', 'site', 'species', 'class', 'field_tag.old', 'field_tag.new', 'status.old', 'status.new', 'herbivory.new')
   changed = merged[ which( merged$status.old == from.status & merged$status.new == to.status), ]
   print(paste( "total", nrow(changed)))
   
   if( nrow(changed) > 0 ) { 
-    print(changed) 
+    print(changed[ , showColumns ]) 
   }   
   print( '----------------------------')
 }
@@ -180,11 +183,18 @@ showSizeDiff = function( old, new, measure ) {
   oldSize =  merged[ , which(names(merged) == paste(measure, '.old', sep = '')) ] 
   newSize =  merged[ , which(names(merged) == paste(measure, '.new', sep = '')) ]  
 
+  quartz(width=5, height = 5)
   plot( x = oldSize, y = newSize, xlab = paste('old', measure), ylab = paste('new', measure))
+  text( x = oldSize, y = newSize, labels = merged$ID, adj=c(-0.2))
   abline( 0, 1)
+  waitkey()
+
 }
 
 
+waitkey = function(){
+  readline( prompt = 'press [enter] to continue' ) 
+}
 
 #### tests of checks 
 ID.1 = seq(-1, 10 , 1)
