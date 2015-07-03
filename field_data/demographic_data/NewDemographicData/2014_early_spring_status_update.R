@@ -22,7 +22,7 @@ earlySpringUpdate = data.frame( earlySpringStatus[, c('ID', 'date2', 'TAG')], c1
 names(earlySpringUpdate)[ c(2, 3, 13, 14)] <- c('date','field_tag', 'status', 'notes') #### standard names for headers 
 
 earlySpringUpdate$date = strftime(earlySpringUpdate$date)
-earlySpringUpdate[ earlySpringUpdate$status == 0, ]
+
 earlySpringUpdate$herbivory[  is.na( earlySpringUpdate$herbivory  ) ]  <- 0
 earlySpringUpdate = earlySpringUpdate[ !is.na(earlySpringUpdate$status),  ] ### drop status NA
 
@@ -51,12 +51,15 @@ see_if( checkPositiveRange( earlySpringUpdate$canopy, upper.limit = 150))
 see_if( checkPositiveRange( earlySpringUpdate$infls, upper.limit = 900))
 see_if( checkAllMonths( earlySpringUpdate$date[ which( earlySpringUpdate$infls > 0 )], early= 9, late = 11))
 
-checkActive( earlySpringUpdate$ID, active$ID)
+Bad = checkActive( earlySpringUpdate$ID, active$ID)
+assert_that( is.null(Bad))
+Bad
 
-bad = c(10, 271, 634, 639, 441, 642, 442, 646, 448, 449, 288, 410, 411, 717, 718, 721, 724)
 earlySpringStatus[ earlySpringStatus$ID %in% bad , ] #### as long as the spring status is 0 it should be ok, just confirming ones that died in the fall
 
 missing = checkForMissing( earlySpringUpdate$ID, active$ID ) 
+
+sort(missing)
 
 missingInfo = list()
 

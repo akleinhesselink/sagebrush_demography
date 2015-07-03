@@ -28,11 +28,9 @@ res = dbSendQuery( db, "SELECT ID, tag1 FROM plants WHERE class = 5")
 class5s = fetch(res, -1)
 dbClearResult(res)
 
-dbListFields(db, 'status')
-
 fallTransplantsUpdate = merge(class5s, fallTransplantsUpdate, by.x = 'tag1', by.y = 'field_tag')
 names(fallTransplantsUpdate)[1] <- 'field_tag'
-names(fallTransplantsUpdate)
+
 fallTransplantsUpdate = cbind(ID = fallTransplantsUpdate$ID, date = fallTransplantsUpdate$date, 
                               field_tag = fallTransplantsUpdate$field_tag, fallTransplantsUpdate[, -c(1:3)])
 
@@ -62,9 +60,11 @@ see_if( checkPositiveRange( fallTransplantsUpdate$canopy, upper.limit = 150))
 see_if( checkPositiveRange( fallTransplantsUpdate$infls, upper.limit = 900))
 see_if( checkAllMonths( fallTransplantsUpdate$date[ which( fallTransplantsUpdate$infls > 0 )], early= 9, late = 11))
 
-checkActive(fallTransplantsUpdate$ID, active$ID )
+Bad = checkActive(fallTransplantsUpdate$ID, active$ID )
+Bad
 
-checkForMissing( fallTransplantsUpdate$ID, active$ID ) #### 
+missing = checkForMissing( fallTransplantsUpdate$ID, active$ID ) #### 
+missing
 
 dbWriteTable(db, name = 'status', value = fallTransplantsUpdate, 
              append = TRUE, row.names = FALSE)

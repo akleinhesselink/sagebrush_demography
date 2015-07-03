@@ -26,12 +26,19 @@ fallDeadUpdate = subset( fallStatusUpdate, status == 0)
 
 fallStatusUpdate$herbivory[  is.na( fallStatusUpdate$herbivory  ) ]  <- 0
 
-fallStatusUpdate[ is.na( fallStatusUpdate$ID ) , ] 
-
 fallStatusUpdate = fallStatusUpdate[ !is.na( fallStatusUpdate$status ),  ] #### drop those with NA for status
 
 names(fallStatusUpdate)[ which( names( fallStatusUpdate) == 'TAG' ) ]  <- 'field_tag'  #### standardize tag name 
 fallStatusUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] <- as.numeric( unlist( fallStatusUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] ))
+
+
+db = dbConnect(SQLite(), 'sage.sqlite')
+
+lastDate = max(fallStatusUpdate$date)
+res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1 AND date( start_date) <= date( ? )" , list( lastDate))
+active = fetch( res, -1)
+dbClearResult( res )
+
 
 #### run checks 
 see_if( checkStatus (fallStatusUpdate$status))
@@ -48,7 +55,14 @@ see_if( checkPositiveRange( fallStatusUpdate$canopy, upper.limit = 150))
 see_if( checkPositiveRange( fallStatusUpdate$infls, upper.limit = 900))
 see_if( checkAllMonths( fallStatusUpdate$date[ which( fallStatusUpdate$infls > 0 )], early= 9, late = 11))
 
-db = dbConnect(SQLite(), '../sage.sqlite')
+Bad = checkActive( fallStatusUpdate$ID, active$ID )
+assert_that( is.null(Bad))
+Bad
+
+fallStatusUpdate[ fallStatusUpdate$ID %in% Bad & fallStatusUpdate$status == 1, ] #### should all be zeros
+
+missing = checkForMissing( fallStatusUpdate$ID, active$ID)
+assert_that(is.null(missing))
 
 dbWriteTable(db, name = 'status', value = fallStatusUpdate, append = TRUE, row.names = FALSE)
 

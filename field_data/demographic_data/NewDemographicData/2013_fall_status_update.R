@@ -58,7 +58,9 @@ see_if( checkPositiveRange( fallStatusUpdate$canopy, upper.limit = 150))
 see_if( checkPositiveRange( fallStatusUpdate$infls, upper.limit = 900))
 see_if( checkAllMonths( fallStatusUpdate$date[ which( fallStatusUpdate$infls > 0 )], early= 9, late = 11))
 
-checkActive( x=fallStatusUpdate$ID , active= active$ID)
+Bad = checkActive( x=fallStatusUpdate$ID , active= active$ID)
+assert_that( is.null(Bad))
+
 checkForMissing( fallStatusUpdate$ID, active = active$ID)
 
 fallStatusUpdate[ fallStatusUpdate$status == 2, ]  
@@ -105,8 +107,11 @@ res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1 AND date( start_da
 active = fetch( res, -1)
 dbClearResult( res )
 
-checkActive( fallTransplantsUpdate$ID, active= active$ID ) 
-checkForMissing( c(fallStatusUpdate$ID, fallTransplantsUpdate$ID), active = active$ID) #### check both for fallUpdate and transplantsUpdate 
+Bad = checkActive( fallTransplantsUpdate$ID, active= active$ID ) 
+assert_that(is.null(Bad))
+
+missing = checkForMissing( c(fallStatusUpdate$ID, fallTransplantsUpdate$ID), active = active$ID) #### check both for fallUpdate and transplantsUpdate 
+assert_that(is.null(missing))
 
 dbWriteTable(db, name = 'status', value = fallTransplantsUpdate, 
              append = TRUE, row.names = FALSE)

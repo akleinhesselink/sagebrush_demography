@@ -6,9 +6,18 @@ source( 'check_db_functions.R')
 plants = read.csv('MasterPlantsTable.csv')
 
 #### change numeric to date 
-origin = '1904-01-01' ### use correct origin for microsoft excel 
+oldDateFormat = '%m/%d/%y'
+newDateFormat = '%Y-%m-%d'
 
-plants$tag_switched = strftime(as.Date(plants$tag_switched, origin = origin))
+plants[ , c('start_date', 'end_date', 'date_treated', 'tag_switched')] <- as.character(unlist( plants[ , c('start_date', 'end_date', 'date_treated', 'tag_switched')]))
+
+plants$date_treated = as.Date(plants$date_treated, format= oldDateFormat)
+plants$start_date = as.Date(plants$start_date, format = oldDateFormat)
+plants$end_date = as.Date(plants$end_date, format = oldDateFormat)
+plants$tag_switched  = as.Date(plants$tag_switched, format = oldDateFormat)
+
+
+plants$tag_switched = strftime(plants$tag_switched)
 plants$start_date = strftime(as.Date(plants$start_date, origin = origin))
 plants$end_date = strftime(as.Date(plants$end_date, origin = origin))
 plants$date_treated = strftime(as.Date(plants$date_treated, origin = origin))
@@ -27,7 +36,7 @@ see_if( checkPlantID ( plants$ID ))
 see_if( checkSiteLabels( plants$site))
 see_if( checkTags ( plants$tag1, na.rm = FALSE))
 see_if( checkTags ( plants$tag2, na.rm= TRUE)) 
-see_if( checkDate( plants$start_date))
+see_if( checkDate(plants$start_date))
 see_if( checkDate( plants$end_date, na.rm = TRUE ) )
 see_if( checkStatus( plants$active ))
 see_if( checkDate( plants$date_treated))

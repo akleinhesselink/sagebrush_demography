@@ -92,11 +92,20 @@ see_if( checkPositiveRange( SummerStatusUpdate$canopy, upper.limit = 150))
 see_if( checkPositiveRange( SummerStatusUpdate$infls, upper.limit = 900))
 see_if( checkAllMonths( SummerStatusUpdate$date[ which( SummerStatusUpdate$infls > 0 )], early= 9, late = 11))
 
-checkActive( x= SummerStatusUpdate$ID, active=active$ID) 
+Bad = checkActive( x= SummerStatusUpdate$ID, active=active$ID) 
+assert_that( is.null(Bad))
+
 missing = checkForMissing( x = SummerStatusUpdate$ID, active = active$ID)
 missing #### plants that should be marked as missing status 2 
 
+SummerStatusUpdate[ SummerStatusUpdate$ID %in% missing , ] 
+
 SummerStatusUpdate[ SummerStatusUpdate$status == 2, ]  #### watch for these IDs in future updates 
+
+res = dbSendQuery(db, 'SELECT * FROM plants WHERE ID = 619 OR ID = 616')
+plantInfo = fetch(res , -1)
+dbClearResult(res)
+plantInfo
 
 dbWriteTable(db, name = 'status', value = SummerStatusUpdate, 
              append = TRUE, row.names = FALSE)

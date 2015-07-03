@@ -9,6 +9,7 @@ firstStatus = read.csv('2012_Fall_to_2013_SpringStatus.csv')
 origin = '1904-01-01' ### use correct origin for microsoft excel 
 
 firstStatus$date = strftime(as.Date(firstStatus$date, origin = origin))
+firstStatus[ firstStatus$ID %in% c(616, 619), ]
 
 firstStatus <- firstStatus [ !is.na( firstStatus$ID), ]  #### drop where ID == NA's
 print( firstStatus[ is.na( firstStatus$date)]) #### print missing dates 
@@ -57,8 +58,11 @@ see_if( checkPositiveRange( firstStatus$canopy, upper.limit = 150))
 see_if( checkPositiveRange( firstStatus$infls, upper.limit = 900))
 see_if( checkAllMonths( firstStatus$date[ which( firstStatus$infls > 0 )], early= 9, late = 11))
 
-checkActive( x=firstStatus$ID , active= active$ID)
-checkForMissing( firstStatus$ID, active = active$ID)
+Bad = checkActive( x=firstStatus$ID , active= active$ID)
+assert_that(is.null(Bad))
+
+missing = checkForMissing( firstStatus$ID, active = active$ID)
+missing
 
 firstStatus [ firstStatus$status == 2, ]  
 

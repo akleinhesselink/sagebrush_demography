@@ -48,11 +48,9 @@ springStatusUpdate$status[ springStatusUpdate$ID ==676 ] <- 0 #### plant 676 was
 names(springStatusUpdate)[ which( names( springStatusUpdate) == 'TAG' ) ]  <- 'field_tag'  #### standardize tag name 
 springStatusUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] <- as.numeric( unlist( springStatusUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] ))
 
-newSeedling = springStatusUpdate[ which( springStatusUpdate$ID == 411 ),  ] ##### new seedling 
-newSeedling$status = 1
-newSeedling$ID = 1103
-newSeedling$notes = "New seedling located near old plant that died"
-springStatusUpdate <- rbind( springStatusUpdate, newSeedling)
+springStatusUpdate[ springStatusUpdate$ID == 1103 , ] 
+
+springStatusUpdate[ which( springStatusUpdate$ID == 411 ),  ] ##### dead plant 
 
 lastDate = max(springStatusUpdate$date)
 res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1 AND date( start_date) <= date( ? )" , list( lastDate))
@@ -80,9 +78,8 @@ assert_that( length(Bad) == 0 )
 missing <- checkForMissing( springStatusUpdate$ID, active$ID )
 assert_that( length( missing) == 0 ) 
 
-springStatusUpdate[ which( springStatusUpdate$ID %in% Bad & springStatusUpdate$status == 1), ] ##### live plants 
+springStatusUpdate[ which( springStatusUpdate$ID %in% Bad & springStatusUpdate$status == 1), ] ##### no live plants 
 springStatusUpdate[ which( springStatusUpdate$ID %in% Bad & springStatusUpdate$status == 3), ] ##### uncertain plants 
-
 
 dbWriteTable(db, name = 'status', value = springStatusUpdate, append = TRUE, row.names = FALSE)
 
