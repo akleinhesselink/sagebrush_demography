@@ -59,9 +59,10 @@ see_if( checkPositiveRange( fallStatusUpdate$infls, upper.limit = 900))
 see_if( checkAllMonths( fallStatusUpdate$date[ which( fallStatusUpdate$infls > 0 )], early= 9, late = 11))
 
 Bad = checkActive( x=fallStatusUpdate$ID , active= active$ID)
-assert_that( is.null(Bad))
+Bad
 
-checkForMissing( fallStatusUpdate$ID, active = active$ID)
+missing = checkForMissing( fallStatusUpdate$ID, active = active$ID)
+missing 
 
 fallStatusUpdate[ fallStatusUpdate$status == 2, ]  
 fallStatusUpdate$status[ fallStatusUpdate$ID == 10 ] <- 0 ##### 10 shows up as dead in the spring so I assign it a 0 here.
@@ -108,10 +109,10 @@ active = fetch( res, -1)
 dbClearResult( res )
 
 Bad = checkActive( fallTransplantsUpdate$ID, active= active$ID ) 
-assert_that(is.null(Bad))
+Bad
 
 missing = checkForMissing( c(fallStatusUpdate$ID, fallTransplantsUpdate$ID), active = active$ID) #### check both for fallUpdate and transplantsUpdate 
-assert_that(is.null(missing))
+missing 
 
 dbWriteTable(db, name = 'status', value = fallTransplantsUpdate, 
              append = TRUE, row.names = FALSE)

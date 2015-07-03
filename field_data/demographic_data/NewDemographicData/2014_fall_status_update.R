@@ -56,13 +56,11 @@ see_if( checkPositiveRange( fallStatusUpdate$infls, upper.limit = 900))
 see_if( checkAllMonths( fallStatusUpdate$date[ which( fallStatusUpdate$infls > 0 )], early= 9, late = 11))
 
 Bad = checkActive( fallStatusUpdate$ID, active$ID )
-assert_that( is.null(Bad))
 Bad
 
 fallStatusUpdate[ fallStatusUpdate$ID %in% Bad & fallStatusUpdate$status == 1, ] #### should all be zeros
-
 missing = checkForMissing( fallStatusUpdate$ID, active$ID)
-assert_that(is.null(missing))
+missing 
 
 dbWriteTable(db, name = 'status', value = fallStatusUpdate, append = TRUE, row.names = FALSE)
 

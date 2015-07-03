@@ -93,7 +93,7 @@ see_if( checkPositiveRange( SummerStatusUpdate$infls, upper.limit = 900))
 see_if( checkAllMonths( SummerStatusUpdate$date[ which( SummerStatusUpdate$infls > 0 )], early= 9, late = 11))
 
 Bad = checkActive( x= SummerStatusUpdate$ID, active=active$ID) 
-assert_that( is.null(Bad))
+Bad
 
 missing = checkForMissing( x = SummerStatusUpdate$ID, active = active$ID)
 missing #### plants that should be marked as missing status 2 

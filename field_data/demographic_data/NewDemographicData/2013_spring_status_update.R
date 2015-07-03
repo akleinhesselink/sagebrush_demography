@@ -59,7 +59,7 @@ see_if( checkPositiveRange( firstStatus$infls, upper.limit = 900))
 see_if( checkAllMonths( firstStatus$date[ which( firstStatus$infls > 0 )], early= 9, late = 11))
 
 Bad = checkActive( x=firstStatus$ID , active= active$ID)
-assert_that(is.null(Bad))
+Bad
 
 missing = checkForMissing( firstStatus$ID, active = active$ID)
 missing

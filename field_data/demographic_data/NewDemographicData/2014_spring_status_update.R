@@ -73,10 +73,11 @@ see_if( checkPositiveRange( springStatusUpdate$infls, upper.limit = 900))
 see_if( checkAllMonths( springStatusUpdate$date[ which( springStatusUpdate$infls > 0 )], early= 9, late = 11))
 
 Bad <- checkActive( springStatusUpdate$ID, active$ID)
-assert_that( length(Bad) == 0 )
+Bad
 
 missing <- checkForMissing( springStatusUpdate$ID, active$ID )
-assert_that( length( missing) == 0 ) 
+missing 
+
 
 springStatusUpdate[ which( springStatusUpdate$ID %in% Bad & springStatusUpdate$status == 1), ] ##### no live plants 
 springStatusUpdate[ which( springStatusUpdate$ID %in% Bad & springStatusUpdate$status == 3), ] ##### uncertain plants 

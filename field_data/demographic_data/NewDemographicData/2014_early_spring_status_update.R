@@ -52,13 +52,11 @@ see_if( checkPositiveRange( earlySpringUpdate$infls, upper.limit = 900))
 see_if( checkAllMonths( earlySpringUpdate$date[ which( earlySpringUpdate$infls > 0 )], early= 9, late = 11))
 
 Bad = checkActive( earlySpringUpdate$ID, active$ID)
-assert_that( is.null(Bad))
 Bad
 
-earlySpringStatus[ earlySpringStatus$ID %in% bad , ] #### as long as the spring status is 0 it should be ok, just confirming ones that died in the fall
+earlySpringStatus[ earlySpringStatus$ID %in% Bad , ] #### as long as the spring status is 0 it should be ok, just confirming ones that died in the fall
 
 missing = checkForMissing( earlySpringUpdate$ID, active$ID ) 
-
 sort(missing)
 
 missingInfo = list()
