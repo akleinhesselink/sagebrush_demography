@@ -109,6 +109,82 @@ checkTreatment <- function ( x ) {
   identical( levels( x ), levels( factor(c('control', 'remove'))))
 }
 
+statusChangeReport <- function( old, new ) { 
+  
+  merged =  merge( old, new, by = 'ID', suffixes=c('.old', '.new'))
+
+  print( "Survivors:") 
+  categorizeStatusChange( merged= merged, from.status=1, to.status=1)
+  
+  print( "Deaths:")
+  categorizeStatusChange( merged = merged, from.status=1, to.status=0)  
+  
+  print( "Uncertain dead: ")
+  categorizeStatusChange( merged = merged, from.status=1, to.status=3)  
+  
+  print( "Lost: ")
+  categorizeStatusChange( merged = merged, from.status=1, to.status=2)  
+    
+  print( "Stays Dead: ")
+  categorizeStatusChange( merged = merged, from.status=0, to.status=0)  
+  
+  print( "Reborn: ")
+  categorizeStatusChange( merged = merged, from.status=0, to.status=1)  
+  
+  print( "Dead to uncertain: ")
+  categorizeStatusChange( merged = merged, from.status=0, to.status=3)  
+  
+  print( "Dead to lost: ")
+  categorizeStatusChange( merged = merged, from.status=0, to.status=2)  
+  
+  print( "Uncertain to Dead: ")
+  categorizeStatusChange( merged = merged, from.status=3, to.status=0)  
+
+  print( "Uncertain to Live: ")
+  categorizeStatusChange( merged = merged, from.status=3, to.status=1)  
+  
+  print( "Uncertain to uncertain: ")
+  categorizeStatusChange( merged = merged, from.status=3, to.status=3)  
+  
+  print( "Uncertain to Lost: ")
+  categorizeStatusChange( merged = merged, from.status=3, to.status=2)  
+  
+  print( "Lost to Dead: ")
+  categorizeStatusChange( merged = merged, from.status=2, to.status=0)  
+
+  print( "Lost to alive: ")
+  categorizeStatusChange( merged = merged, from.status=2, to.status=1)  
+  
+  print( "Lost to uncertain: ")
+  categorizeStatusChange( merged = merged, from.status=2, to.status=3)  
+  
+  print( "Lost to Lost: ")
+  categorizeStatusChange( merged = merged, from.status=2, to.status=2)  
+  
+}
+
+categorizeStatusChange = function( merged, from.status, to.status ){   
+  #### merged is a dataframe with the old and new status's merged by ID
+  changed = merged[ which( merged$status.old == from.status & merged$status.new == to.status), ]
+  print(paste( "total", nrow(changed)))
+  
+  if( nrow(changed) > 0 ) { 
+    print(changed) 
+  }   
+  print( '----------------------------')
+}
+
+showSizeDiff = function( old, new, measure ) { 
+  
+  merged = merge(old, new, by = 'ID', suffixes=c('.old', '.new') )  
+  oldSize =  merged[ , which(names(merged) == paste(measure, '.old', sep = '')) ] 
+  newSize =  merged[ , which(names(merged) == paste(measure, '.new', sep = '')) ]  
+
+  plot( x = oldSize, y = newSize, xlab = paste('old', measure), ylab = paste('new', measure))
+  abline( 0, 1)
+}
+
+
 
 #### tests of checks 
 ID.1 = seq(-1, 10 , 1)
