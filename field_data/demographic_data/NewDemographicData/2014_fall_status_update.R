@@ -39,7 +39,11 @@ fallStatusUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')
 db = dbConnect(SQLite(), 'sage.sqlite')
 
 lastDate = max(fallStatusUpdate$date)
-res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1 AND date( start_date) <= date( ? )" , list( lastDate))
+res = dbSendQuery( db, "SELECT *, max(date) FROM plants 
+                   JOIN status USING (ID) 
+                   WHERE active = 1 AND start_date <= ? AND date <= ?
+                   GROUP BY ID", list(lastDate, lastDate))
+
 active = fetch( res, -1)
 dbClearResult( res )
 

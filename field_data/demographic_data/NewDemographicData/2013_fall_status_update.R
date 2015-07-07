@@ -35,13 +35,21 @@ db = dbConnect(SQLite(), dbname = 'sage.sqlite')
 fallStatusUpdate$herbivory[ is.na( fallStatusUpdate$herbivory )  ] <- 0 
 fallStatusUpdate$stem_d2 = as.numeric( fallStatusUpdate$stem_d2) 
 
-sort( fallStatusUpdate$ID[ fallStatusUpdate$status == 3  ]  ) 
-sort( fallStatusUpdate$ID[ fallStatusUpdate$status == 2 ] )
-
 lastDate = max(fallStatusUpdate$date)
-res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1 AND date( start_date) <= date( ? )" , list( lastDate))
+res = dbSendQuery( db, "SELECT *, max(date) FROM plants 
+                   JOIN status USING (ID) 
+                   WHERE active = 1 AND start_date <= ? AND date <= ?
+                   GROUP BY ID", list(lastDate, lastDate))
+
 active = fetch( res, -1)
 dbClearResult( res )
+
+res = dbSendQuery( db, "SELECT *, max(date) FROM plants 
+                   JOIN status USING (ID) 
+                   WHERE active = 1 AND start_date <= ? AND date <= ? AND ch IS NOT NULL
+                   GROUP BY ID", list(lastDate, lastDate))
+active.size = fetch( res, -1)
+dbClearResult(res)
 
 #### run Checks 
 see_if( checkPlantID( fallStatusUpdate$ID ))
@@ -64,8 +72,24 @@ Bad
 missing = checkForMissing( fallStatusUpdate$ID, active = active$ID)
 missing 
 
-fallStatusUpdate[ fallStatusUpdate$status == 2, ]  
+statusChangeReport( old= active, new = fallStatusUpdate)
+
+active.size$area <- (active.size$c1/2)*(active.size$c2/2)*pi 
+fallStatusUpdate$area <- (fallStatusUpdate$c1/2)*(fallStatusUpdate$c2/2)*pi
+
+showSizeDiff( old= active.size, new = fallStatusUpdate, measure= 'ch')
+showSizeDiff( old = active.size, new = fallStatusUpdate, measure = 'area')
+showSizeDiff( old = active.size, new = fallStatusUpdate, measure = 'stem_d1')
+showSizeDiff( old = active.size, new = fallStatusUpdate, measure = 'canopy')
+
+
+##### if status 0 --> 1 then change old zero to 1 
+##### if status 3 --> 1 then change old 3 to 1 
+##### if status 3 --> 0 then change old 3 to 0 
+
 fallStatusUpdate$status[ fallStatusUpdate$ID == 10 ] <- 0 ##### 10 shows up as dead in the spring so I assign it a 0 here.
+
+fallStatusUpdate = fallStatusUpdate [ , -which( names( fallStatusUpdate) == 'area' ) ] ## drop area 
 
 dbWriteTable(db, name = 'status', value = fallStatusUpdate, 
              append = TRUE, row.names = FALSE)
@@ -120,18 +144,94 @@ dbWriteTable(db, name = 'status', value = fallTransplantsUpdate,
 res = dbSendQuery( db, "SELECT ID, field_tag, date FROM status WHERE date(date) > date('2013-08-30') AND 
                    date(date) < date('2014-01-01') AND (status = 0 OR ID = 261)") #### and add missing plant 261 
 
-fallDeadUpdate = fetch(res)
+fallDeadUpdate = fetch(res, -1)
+
+head( fallDeadUpdate ) 
+
+fallStatusUpdate[ fallStatusUpdate$ID == 248, ] 
+
+
+
+
+
+q.reborn = "SELECT max(date)
+            FROM status
+            WHERE NOT status = 1 AND 
+                          date < (SELECT max(date) 
+                          FROM status AS max_status 
+                          WHERE max_status.ID = status.ID 
+                          AND max_status.status = 1) 
+            GROUP BY ID"
+
+
+reborn = dbGetQuery( db, 'SELECT * FROM status WHERE ID IN (SELECT ID FROM (SELECT rowid, max(date) 
+                                          FROM status 
+                                          WHERE date < (SELECT max(date) 
+                                                        FROM status AS max_status
+                                                        WHERE max_status.ID = status.ID
+                                                        AND max_status.status = 1)
+                                                        AND NOT status = 1 
+                                           GROUP BY ID))')
+reborn 
+
+
+dbGetQuery(db, 'UPDATE status SET status = 0 WHERE rowid IN (SELECT rowid FROM (SELECT rowid, max(date) 
+                                          FROM status 
+                                          WHERE date < (SELECT max(date) 
+                                                        FROM status AS max_status
+                                                        WHERE max_status.ID = status.ID
+                                                        AND max_status.status = 1)
+                                                        AND NOT status = 1 
+                                           GROUP BY ID))')
+
+dbGetQuery(db, 'SELECT * FROM status WHERE rowid IN (1924, 1935, 1965)')
+
+reborn = dbGetQuery( conn=db, statement=q.reborn, ) 
+reborn
+
+nrow( reborn) 
+
+q.now.dead = "SELECT ID, status, date, max(date) 
+              FROM status AS results 
+              WHERE date < (SELECT max(date) 
+                            FROM status AS max_status 
+                            WHERE max_status.ID = status.ID 
+                            AND max_status.status = 0) 
+              AND NOT status = 1
+              GROUP BY ID"
+
+set.three.to.zero = "UPDATE status SET status = 0 
+                            WHERE date = second_to_last.date AND ID IN 
+                            (SELECT ID FROM (SELECT ID, status, date, max(date) 
+                            FROM status AS second_to_last
+                            WHERE date < (SELECT max(date) 
+                                           FROM status AS max_status 
+                                           WHERE max_status.ID = second_to_last.ID 
+                                           AND max_status.status = 0) 
+                             AND NOT status = 1
+                             GROUP BY ID)) "
+
+
+res = dbSendQuery( db, q.now.dead ) 
+now.dead = fetch(res, -1)
 dbClearResult(res)
+now.dead 
 
-for(i in 1:nrow(fallDeadUpdate)){ 
-  ID = fallDeadUpdate[i, 'ID']
-  date = fallDeadUpdate[i, 'date']
-  
-  res = dbSendQuery( db, "UPDATE plants SET active = 0, end_date = ? WHERE ID = ? AND active = 1", 
-                     list(date, ID))
-  dbClearResult(res)
-}
+q.date = "UPDATE plants SET end_date = (SELECT MAX(date)
+                    FROM status
+                    WHERE id = plants.id AND status = 0)                    
+    WHERE EXISTS (SELECT date
+                  FROM status
+                  WHERE id = plants.id AND status = 0);" 
 
+dbGetQuery( db, q.date)
+
+q.status = "UPDATE plants SET active = 0 WHERE end_date IS NOT NULL;"
+dbGetQuery( db, q.status )
+
+plants = dbGetQuery(db, 'SELECT * FROM plants ')
+
+head( plants ) 
 
 dbDisconnect(db)            # Close connection
 

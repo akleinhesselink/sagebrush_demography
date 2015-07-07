@@ -1,5 +1,4 @@
 rm(list = ls())
-library(RSQLite)
 
 source( 'check_db_functions.R')
 
@@ -48,7 +47,7 @@ see_if( checkTreatment( plants$treatment))
 db = dbConnect(SQLite(), dbname = 'sage.sqlite') ### create database 
 
 dbWriteTable(db, name = 'plants', field.types = as.list(plantsTypes), 
-             value = plants, uniq = 'ID', row.names = FALSE, overwrite = TRUE)
+             value = plants, row.names = FALSE, overwrite = TRUE)
 
 res = dbSendQuery( db, 'UPDATE plants SET treatment = Null WHERE treatment != "control" AND treatment != "remove" ')
 dbClearResult(res)

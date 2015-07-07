@@ -1,5 +1,6 @@
 require(assertthat)
-
+require(DBI)
+require(RSQLite)
 
 checkSiteLabels = function( x ) { 
   x = factor(x)

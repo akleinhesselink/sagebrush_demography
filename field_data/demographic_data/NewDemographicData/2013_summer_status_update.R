@@ -7,7 +7,6 @@
 #### and sometimes plants switch to a new  tag #
 
 rm(list = ls())
-library(RSQLite)
 source( 'check_db_functions.R')
 
 raw_mid_summer = read.csv("2013_summer_survival_update.csv")
@@ -72,10 +71,16 @@ SummerStatusUpdate$herbivory[ is.na( SummerStatusUpdate$herbivory) ] <- 0
 SummerStatusUpdate$infls <- as.numeric(SummerStatusUpdate$infls)
 SummerStatusUpdate[ is.na( SummerStatusUpdate$infls ) , 'infls'] <- 0 
 
+
 lastDate = max(SummerStatusUpdate$date)
-res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1 AND start_date <= ?", list(lastDate))
+res = dbSendQuery( db, "SELECT *, max(date) FROM plants 
+                   JOIN status USING (ID) 
+                   WHERE active = 1 AND start_date <= ? AND date <= ?
+                   GROUP BY ID", list(lastDate, lastDate))
+
 active = fetch( res, -1)
 dbClearResult( res )
+
 
 ##### run checks 
 see_if( checkPlantID( SummerStatusUpdate$ID))
@@ -100,21 +105,19 @@ missing #### plants that should be marked as missing status 2
 
 SummerStatusUpdate[ SummerStatusUpdate$ID %in% missing , ] 
 
-SummerStatusUpdate[ SummerStatusUpdate$status == 2, ]  #### watch for these IDs in future updates 
+statusChangeReport( old= active, new = SummerStatusUpdate)
 
-res = dbSendQuery(db, 'SELECT * FROM plants WHERE ID = 619 OR ID = 616')
-plantInfo = fetch(res , -1)
-dbClearResult(res)
-plantInfo
+SummerStatusUpdate[ SummerStatusUpdate$status == 2, ]  #### watch for these IDs in future updates 
 
 dbWriteTable(db, name = 'status', value = SummerStatusUpdate, 
              append = TRUE, row.names = FALSE)
 
-res = dbSendQuery( db, "SELECT ID, field_tag, date FROM status WHERE date(date) > date('2013-07-30') AND 
+res = dbSendQuery( db, "SELECT ROWID, ID, field_tag, date FROM status WHERE date(date) > date('2013-07-30') AND 
                    date(date) < date('2013-09-01') AND (status = 0 OR ID = 640 OR ID = 835)")  #### adding these IDs because they were lost and not refound
 
 SummerDeadUpdate = fetch(res)
 dbClearResult(res)
+
 
 for(i in 1:nrow(SummerDeadUpdate)){ 
   ID = SummerDeadUpdate[i, 'ID']

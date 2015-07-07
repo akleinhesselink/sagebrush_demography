@@ -1,5 +1,6 @@
 rm(list = ls())
 library(RSQLite)
+library(DBI)
 
 source( 'check_db_functions.R')
 
@@ -63,7 +64,6 @@ Bad
 missing = checkForMissing( firstStatus$ID, active = active$ID)
 missing
 
-
 old = subset(firstStatus, as.Date(date) < '2013-01-01')
 new = subset(firstStatus, as.Date( date) > '2013-01-01')
 old$area <- (old$c1/2)*(old$c2/2)*pi
@@ -82,8 +82,31 @@ firstStatus$notes = as.character(firstStatus$notes)
 firstStatus$notes[ firstStatus$ID == 149 ]<- c('fall 2012 measurement may include separate plant nearby', '')
 
 
-dbWriteTable(db, name = 'status', field.types = as.list(statusTypes), 
-             value = firstStatus, row.names = FALSE, overwrite = TRUE)
+dbGetQuery( db, "DROP TABLE status")
+
+dbGetQuery(db, "CREATE TABLE status
+                (
+                ID INTEGER,
+                date DATE, 
+                field_tag INTEGER, 
+                c1 REAL,
+                c2 REAL,
+                ch REAL,
+                canopy REAL, 
+                infls INTEGER, 
+                lv_stems INTEGER, 
+                dd_stems INTEGER, 
+                stem_d1 REAL, 
+                stem_d2 REAL, 
+                status INTEGER,
+                notes TEXT, 
+                herbivory INTEGER,
+                CONSTRAINT obs_pk PRIMARY KEY (ID, date) );")
+
+
+dbWriteTable(db, name = 'status', value = firstStatus, row.names = FALSE, overwrite = TRUE)
+testdf = dbGetQuery( db, "SELECT rowid, * FROM status")
+
 
 res = dbSendQuery( db, "SELECT ID, field_tag, date FROM status WHERE date(date) > date('2013-04-01') AND 
                    date(date) < date('2013-08-01') AND (status = 0 OR ID = 69 OR ID = 632 OR ID = 733 OR ID = 800)") #### Mark reused tags or plants that were dug up as inactive  
@@ -100,3 +123,4 @@ for(i in 1:nrow(springDeadUpdate)){
 
 
 dbDisconnect(db)            # Close connection
+
