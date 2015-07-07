@@ -49,7 +49,7 @@ db = dbConnect(SQLite(), dbname = 'sage.sqlite') ### create database
 dbWriteTable(db, name = 'plants', field.types = as.list(plantsTypes), 
              value = plants, row.names = FALSE, overwrite = TRUE)
 
-res = dbSendQuery( db, 'UPDATE plants SET treatment = Null WHERE treatment != "control" AND treatment != "remove" ')
-dbClearResult(res)
+dbGetQuery( db, 'UPDATE plants SET treatment = Null WHERE treatment != "control" AND treatment != "remove" ')
+
 
 dbDisconnect(db)            # Close connection

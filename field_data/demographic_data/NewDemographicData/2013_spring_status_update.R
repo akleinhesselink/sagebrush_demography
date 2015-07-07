@@ -3,6 +3,7 @@ library(RSQLite)
 library(DBI)
 
 source( 'check_db_functions.R')
+source('dbQueryTools.R')
 
 firstStatus = read.csv('2012_Fall_to_2013_SpringStatus.csv')
 
@@ -25,11 +26,6 @@ firstStatus$c1 <- round(firstStatus$c1 - 0.01)
 firstStatus$c2 <- round(firstStatus$c2 - 0.01)
 firstStatus$ch <- round(firstStatus$ch - 0.01)
 
-statusTypes = sapply(firstStatus, class)
-
-statusTypes[1:length(statusTypes)] <- c('int', 'text', 'int', rep('real', 9), 
-                                        'int', 'character', 'int')
-
 firstStatus$canopy <- as.numeric(firstStatus$canopy)
 firstStatus$herbivory[ is.na( firstStatus$herbivory) ] <- 0 
 firstStatus$infls <- as.numeric(firstStatus$infls)
@@ -39,9 +35,7 @@ firstStatus[ is.na( firstStatus$infls ) , 'infls'] <- 0
 db = dbConnect(SQLite(), dbname = 'sage.sqlite')
 
 lastDate = max(firstStatus$date)
-res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1 AND start_date <= ?", list(lastDate ))
-active = fetch( res, -1)
-dbClearResult( res )
+active = dbGetQuery( db, "SELECT * FROM plants WHERE active = 1 AND start_date <= ?", list(lastDate ))
 
 ###### Run the checks 
 see_if( checkStatus( firstStatus$status))
@@ -76,11 +70,8 @@ showSizeDiff( old = old, new = new, measure= 'ch')
 showSizeDiff( old = old, new = new, measure = 'area') #### plant 149 may be too big in the fall
 showSizeDiff( old = old[ old$class == 1, ], new = new, measure = 'stem_d1')
 
-graphics.off( )
-
 firstStatus$notes = as.character(firstStatus$notes)
 firstStatus$notes[ firstStatus$ID == 149 ]<- c('fall 2012 measurement may include separate plant nearby', '')
-
 
 dbGetQuery( db, "DROP TABLE status")
 
@@ -103,24 +94,17 @@ dbGetQuery(db, "CREATE TABLE status
                 herbivory INTEGER,
                 CONSTRAINT obs_pk PRIMARY KEY (ID, date) );")
 
-
 dbWriteTable(db, name = 'status', value = firstStatus, row.names = FALSE, overwrite = TRUE)
-testdf = dbGetQuery( db, "SELECT rowid, * FROM status")
 
+dbGetQuery( db, "UPDATE plants SET end_date = NULL")
 
-res = dbSendQuery( db, "SELECT ID, field_tag, date FROM status WHERE date(date) > date('2013-04-01') AND 
-                   date(date) < date('2013-08-01') AND (status = 0 OR ID = 69 OR ID = 632 OR ID = 733 OR ID = 800)") #### Mark reused tags or plants that were dug up as inactive  
-springDeadUpdate = fetch(res)
-dbClearResult(res)
+exceptions = c(69, 632, 733, 800) ## these plants are status 2 in the spring and tags were removed, mark active = 0 
 
-for(i in 1:nrow(springDeadUpdate)){ 
-  ID = springDeadUpdate[i, 'ID']
-  date = springDeadUpdate[i, 'date']  
-  res = dbSendQuery( db, "UPDATE plants SET active = 0, end_date = ? WHERE ID = ? AND active = 1", 
-                     list(date, ID))
-  dbClearResult(res)
-}
+early_date = as.Date( min( firstStatus$date[ firstStatus$date > '2013-01-01' ]  ) ) - 1   #### first date in 2013 
 
+dbGetQuery( db, q.update.end_date, rep( strftime( early_date ), 2 )  )
+dbGetQuery( db, makeExceptionalUpdateQuery( exceptions ), rep( exceptions, 2 )  )
+dbGetQuery( db, q.update.active )
 
 dbDisconnect(db)            # Close connection
 
