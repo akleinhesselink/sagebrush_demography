@@ -22,23 +22,21 @@ makeExceptionalUpdateQuery = function ( x) {
          );")}
 
 
-q.update.end_date = "UPDATE plants 
+q.update.end_date <- "UPDATE plants 
                       SET end_date = 
-                      (
-                        SELECT MAX(date)
-                        FROM status
-                        WHERE id = plants.id 
-                        AND status = 0 
-                        AND date(date) > date(?)
-                      )                    
+                        ( 
+                          SELECT MIN(date)
+                          FROM status 
+                          WHERE ID = plants.ID
+                          AND status = 0 
+                        )
                       WHERE EXISTS 
-                      (
-                        SELECT date
-                        FROM status
-                        WHERE id = plants.id 
-                        AND status = 0
-                        AND date(date) > date(?)
-                      );" 
+                        (
+                          SELECT date
+                          FROM status
+                          WHERE ID = plants.ID 
+                          AND status = 0
+                        );"
 
 
 q.update.active = "UPDATE plants 
@@ -95,7 +93,7 @@ q.update.now.dead = "UPDATE status
                   SELECT rowid 
                   FROM 
                   (
-                    SELECT rowid, max(date) 
+                    SELECT rowid 
                     FROM status 
                     WHERE NOT status = 1 
                     AND date < 
@@ -105,12 +103,11 @@ q.update.now.dead = "UPDATE status
                       WHERE last_status.ID = status.ID
                       AND last_status.status = 0
                     )
-                    GROUP BY ID
                   )
                 );"
 
 
-q.now.dead = "SELECT ID, date, field_tag, ch, status, notes, rowid
+q.now.dead = "SELECT ID, date, field_tag, ch, stem_d1, status, notes, rowid
               FROM status 
               WHERE ID IN 
                 (

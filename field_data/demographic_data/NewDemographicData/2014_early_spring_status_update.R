@@ -10,6 +10,7 @@
 rm(list = ls())
 library(RSQLite)
 source('check_db_functions.R')
+source('dbQueryTools.R')
 
 earlySpringStatus = read.csv('2014_Early_Spring_Update.csv')
 
@@ -31,10 +32,10 @@ earlySpringUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls'
 db = dbConnect(SQLite(), dbname = 'sage.sqlite')
 
 lastDate = max(earlySpringUpdate$date)
-res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1 AND date( start_date) <= date( ? )" , list( lastDate))
-active = fetch( res, -1)
-dbClearResult( res )
-
+active = dbGetQuery( db, "SELECT *, max(date) FROM plants 
+                   JOIN status USING (ID) 
+                   WHERE active = 1 AND start_date <= ? AND date <= ?
+                   GROUP BY ID", list(lastDate, lastDate))
 #### run checks 
 see_if( checkStatus (earlySpringUpdate$status))
 see_if( checkPlantID ( earlySpringUpdate$ID))
@@ -54,24 +55,21 @@ see_if( checkAllMonths( earlySpringUpdate$date[ which( earlySpringUpdate$infls >
 Bad = checkActive( earlySpringUpdate$ID, active$ID)
 Bad
 
-earlySpringStatus[ earlySpringStatus$ID %in% Bad , ] #### as long as the spring status is 0 it should be ok, just confirming ones that died in the fall
+earlySpringUpdate[ earlySpringUpdate$ID %in% Bad , ] #### as long as the spring status is 0 it should be ok, just confirming ones that died in the fall
 
 missing = checkForMissing( earlySpringUpdate$ID, active$ID ) 
 sort(missing)
 
-missingInfo = list()
+missingInfo = dbGetQuery( db, paste( "SELECT ID, start_date, end_date, class, site 
+                                      FROM plants  
+                                      WHERE ID IN (", questionMarks( missing ), ") 
+                                      ORDER BY ID, site;"), missing) 
 
-for(i in 1:length(missing)) { 
-  res = dbSendQuery( db, 'SELECT * FROM plants WHERE ID == ?', list(missing[i]))
-  missingInfo[[i]] = fetch(res, -1)
-  dbClearResult(res) 
-}
-
-do.call(rbind, unique( missingInfo )) ##### missing the class 5s, 
+missingInfo #### mostly class 5s spring Transplant update catches the 5's later 
                                       ##### 771 is a new seedling is a class 6 and needs to be added to the datasheet 
                                       ###### watch for 678 a class 4 in later updates 
 
-newSeedling = earlySpringUpdate[ earlySpringUpdate$field_tag == 771, ]
+newSeedling = earlySpringUpdate[ earlySpringUpdate$field_tag == 771, ] ### make new record to append to status update 
 newSeedling$ID = 1087
 newSeedling$status = 1 
 earlySpringUpdate = rbind( earlySpringUpdate, newSeedling)
@@ -79,32 +77,23 @@ earlySpringUpdate = rbind( earlySpringUpdate, newSeedling)
 dbWriteTable(db, name = 'status', value = earlySpringUpdate, 
              append = TRUE, row.names = FALSE)
 
-res = dbSendQuery( db, "SELECT ID, field_tag, date, status FROM status WHERE date(date) > date('2013-09-01') 
-                   AND date(date) < date('2014-01-01')")
-fallStatus = fetch(res, -1)
-dbClearResult(res)
+statusChangeReport( old = active, new = earlySpringUpdate )
 
-res = dbSendQuery( db, "SELECT ID, field_tag, date, status FROM status WHERE date(date) > date('2014-01-01') 
-                   AND date(date) <= date('2014-05-16')")
-springStatus = fetch(res, -1)
-dbClearResult(res)
+early_date = strftime( as.Date(min(earlySpringUpdate$date)) - 1 ) 
 
-WinterChange = merge(fallStatus, springStatus, by = 'ID')
-WinterChange[ WinterChange$status.y == 0 & WinterChange$status.x !=0, ] 
-WinterChange[ WinterChange$status.y == 1 & WinterChange$status.x !=1, ] #### Note which live plants were supposed to be dead
+reborn = dbGetQuery( db, q.reborn) #### find status changes from anything back to one 
+reborn ##### These need to be reset to status 1 
 
-res = dbSendQuery( db, "SELECT ID, field_tag, date FROM status WHERE date(date) > date('2014-01-01') 
-                   AND date(date) <= date('2014-05-16') AND status = 0")
-wintersDead = fetch(res, -1)
-dbClearResult(res)
+now_dead = dbGetQuery( db, q.now.dead ) ##### find status going from 3 to 0 
+now_dead
 
-for(i in 1:nrow(wintersDead)){ 
-  ID = wintersDead[i, 'ID']
-  date = wintersDead[i, 'date']
-  res = dbSendQuery( db, "UPDATE plants SET active = 0, end_date = ? WHERE ID = ? AND active = 1", 
-                     list(date, ID))
-  dbClearResult(res)
-}
+dbGetQuery( db, q.update.now.dead ) #### update status to 0 when they go from 3 to 0 
 
+now_dead = dbGetQuery( db, q.now.dead ) ##### find status going from 3 to 0 
+now_dead$ID
+
+dbGetQuery( db, q.update.end_date ) #### , rep(early_date, 2)) 
+
+dbGetQuery( db, q.update.active )
 
 dbDisconnect(db)            # Close connection

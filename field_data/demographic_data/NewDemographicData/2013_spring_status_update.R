@@ -102,9 +102,12 @@ exceptions = c(69, 632, 733, 800) ## these plants are status 2 in the spring and
 
 early_date = as.Date( min( firstStatus$date[ firstStatus$date > '2013-01-01' ]  ) ) - 1   #### first date in 2013 
 
-dbGetQuery( db, q.update.end_date, rep( strftime( early_date ), 2 )  )
+dbGetQuery( db, q.update.end_date ) #, rep( strftime( early_date ), 2 )  )
+
 dbGetQuery( db, makeExceptionalUpdateQuery( exceptions ), rep( exceptions, 2 )  )
 dbGetQuery( db, q.update.active )
+
+dbGetQuery(db, "SELECT * FROM plants WHERE end_date > ?" , list(early_date))
 
 dbDisconnect(db)            # Close connection
 

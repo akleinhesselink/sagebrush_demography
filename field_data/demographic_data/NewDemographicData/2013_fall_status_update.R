@@ -132,9 +132,10 @@ missing
 dbWriteTable(db, name = 'status', value = fallTransplantsUpdate, 
              append = TRUE, row.names = FALSE)
 
-exceptions = 261 
+
 early_date = strftime( as.Date(min(c(fallStatusUpdate$date, fallTransplantsUpdate$date))) - 1 ) 
 
+exceptions = 261 
 fallStatusUpdate[ fallStatusUpdate$ID == 248, ] 
 
 reborn = dbGetQuery( db, q.reborn) #### find status changes from anything back to one 
@@ -147,9 +148,11 @@ now_dead = dbGetQuery( db, q.now.dead ) ##### find status going from 3 to 0
 dbGetQuery( db, q.update.now.dead ) #### update status to 0 when they go from 3 to 0 
 
 #### Update plants table: 
-dbGetQuery( db, q.update.end_date, rep(early_date, 2)) 
+dbGetQuery( db, q.update.end_date) # rep(early_date, 2)) 
 dbGetQuery( db, makeExceptionalUpdateQuery( exceptions ), rep( exceptions, 2) )
 dbGetQuery( db, q.update.active )
 
+dbGetQuery( db, "SELECT plants.ID, end_date, date, status FROM plants JOIN status USING (ID) WHERE NOT status = 1 AND end_date IS NULL ORDER BY ID, date")
 
 dbDisconnect(db)            # Close connection
+graphics.off()

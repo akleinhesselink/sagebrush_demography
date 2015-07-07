@@ -109,6 +109,9 @@ dbWriteTable(db, name = 'status', value = SummerStatusUpdate,
 
 early_date = strftime( as.Date( min(SummerStatusUpdate$date ) ) - 1 )    #### first date in Summer 2013 update 
 
+dbGetQuery(db, q.reborn)
+dbGetQuery(db, q.now.dead)
+
 dbGetQuery( db, q.update.end_date, rep(early_date, 2) )
 dbGetQuery( db, makeExceptionalUpdateQuery ( exceptions ), rep( exceptions, 2 ) )
 dbGetQuery( db, q.update.active)
