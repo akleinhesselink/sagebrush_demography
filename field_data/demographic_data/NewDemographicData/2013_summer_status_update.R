@@ -8,6 +8,7 @@
 
 rm(list = ls())
 source( 'check_db_functions.R')
+source( 'dbQueryTools.R')
 
 raw_mid_summer = read.csv("2013_summer_survival_update.csv")
 
@@ -19,9 +20,7 @@ raw_mid_summer$date = as.Date ( as.character(raw_mid_summer$date), format= '%m/%
 db = dbConnect(SQLite(), dbname = 'sage.sqlite')
 
 #### Look up ID's for status update: 
-res = dbSendQuery(db, 'SELECT ID, tag1, tag2, tag_switched, end_date FROM plants WHERE date(start_date) < date("2013-08-01")')
-originalPlants = fetch(res, -1)
-dbClearResult(res)
+originalPlants = dbGetQuery(db, 'SELECT ID, tag1, tag2, tag_switched, end_date FROM plants WHERE date(start_date) < date("2013-08-01")')
 
 switched = subset(originalPlants, tag_switched < as.Date('2013-09-01'))
 
@@ -44,7 +43,6 @@ midSummerMerge = rbind(midSummerMerge, cbind(raw_mid_summer[ which( raw_mid_summ
                             ID.x = 687, ID.y = 687, tag2 = NA, tag_switched = NA, end_date = NA))
 
 midSummerMerge[ is.na( midSummerMerge$ID.x), 'ID.x' ] = midSummerMerge[ is.na( midSummerMerge$ID.x), 'ID.y' ]
-
 midSummerMerge[ is.na( midSummerMerge$status) ,  'date' ]  <- '2013-08-06'
 midSummerMerge[ is.na( midSummerMerge$status), 'status'] <- 1  #### I only recorded plants that were dead at some sites, so missing plants are alive 
 
@@ -71,16 +69,12 @@ SummerStatusUpdate$herbivory[ is.na( SummerStatusUpdate$herbivory) ] <- 0
 SummerStatusUpdate$infls <- as.numeric(SummerStatusUpdate$infls)
 SummerStatusUpdate[ is.na( SummerStatusUpdate$infls ) , 'infls'] <- 0 
 
-
 lastDate = max(SummerStatusUpdate$date)
-res = dbSendQuery( db, "SELECT *, max(date) FROM plants 
+
+active = dbGetQuery( db, "SELECT *, max(date) FROM plants 
                    JOIN status USING (ID) 
                    WHERE active = 1 AND start_date <= ? AND date <= ?
                    GROUP BY ID", list(lastDate, lastDate))
-
-active = fetch( res, -1)
-dbClearResult( res )
-
 
 ##### run checks 
 see_if( checkPlantID( SummerStatusUpdate$ID))
@@ -108,24 +102,15 @@ SummerStatusUpdate[ SummerStatusUpdate$ID %in% missing , ]
 statusChangeReport( old= active, new = SummerStatusUpdate)
 
 SummerStatusUpdate[ SummerStatusUpdate$status == 2, ]  #### watch for these IDs in future updates 
+exceptions = c(640, 835 ) #### exceptions -- lost and now need to be marked active = 0 
 
 dbWriteTable(db, name = 'status', value = SummerStatusUpdate, 
              append = TRUE, row.names = FALSE)
 
-res = dbSendQuery( db, "SELECT ROWID, ID, field_tag, date FROM status WHERE date(date) > date('2013-07-30') AND 
-                   date(date) < date('2013-09-01') AND (status = 0 OR ID = 640 OR ID = 835)")  #### adding these IDs because they were lost and not refound
+early_date = strftime( as.Date( min(SummerStatusUpdate$date ) ) - 1 )    #### first date in Summer 2013 update 
 
-SummerDeadUpdate = fetch(res)
-dbClearResult(res)
-
-
-for(i in 1:nrow(SummerDeadUpdate)){ 
-  ID = SummerDeadUpdate[i, 'ID']
-  date = SummerDeadUpdate[i, 'date']
-  res = dbSendQuery( db, "UPDATE plants SET active = 0, end_date = ? WHERE ID = ? AND active = 1", 
-                     list(date, ID))
-  dbClearResult(res)
-}
-
+dbGetQuery( db, q.update.end_date, rep(early_date, 2) )
+dbGetQuery( db, makeExceptionalUpdateQuery ( exceptions ), rep( exceptions, 2 ) )
+dbGetQuery( db, q.update.active)
 
 dbDisconnect(db)            # Close connection
