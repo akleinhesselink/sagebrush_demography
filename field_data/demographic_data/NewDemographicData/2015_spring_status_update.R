@@ -4,6 +4,7 @@
 rm(list = ls())
 library(RSQLite)
 source( 'check_db_functions.R')
+source( 'dbQueryTools.R')
 
 springStatus = read.csv('2015_SpringData.csv')
 
@@ -47,13 +48,22 @@ springStatus[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] <-
 
 springStatus[ duplicated( springStatus$ID ) , ] 
 
-springStatus[ springStatus$ID %in% c(36, 45, 60), ]
 
 lastDate = max(springStatus$date)
-res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1 AND date( start_date) <= date( ? )" , list( lastDate))
-active = fetch( res, -1)
-dbClearResult( res )
+active = dbGetQuery( db, "SELECT *, max(date) 
+                          FROM plants 
+                          JOIN status USING (ID) 
+                          WHERE active = 1 AND start_date <= ? AND date <= ?
+                          GROUP BY ID", list(lastDate, lastDate))
 
+active.size = dbGetQuery( db, "SELECT *, max(date) 
+                          FROM plants 
+                          JOIN status USING (ID) 
+                          WHERE active = 1 
+                          AND start_date <= ? 
+                          AND date <= ?
+                          AND c1 IS NOT NULL
+                          GROUP BY ID", list(lastDate, lastDate))
 
 #### run checks 
 checkStatus (springStatus$status)
@@ -73,45 +83,88 @@ checkAllMonths( springStatus$date[ which( springStatus$infls > 0 )], early= 9, l
 Bad = checkActive( springStatus$ID, active$ID )
 Bad 
 
-springStatus [ springStatus$ID %in% Bad & springStatus$status == 1 , ]  ##### these should be dead 
+springStatus [ springStatus$ID %in% Bad , ]  ##### these should be dead 
 
 missing = checkForMissing( springStatus$ID, active$ID)
 missing
 
-res = dbSendQuery(db, "SELECT site, transect, Y, plants.ID, tag1, class, date, c1, c2, ch, status, status.notes, herbivory FROM plants JOIN status ON status.ID = plants.ID WHERE plants.ID IN (?) ORDER BY plants.ID, date", missing )
-missing_info = fetch(res, -1)
-dbClearResult(res )
+q = paste( "SELECT ID, site, class, date, status, ch 
+           FROM plants 
+           JOIN status USING (ID) 
+           WHERE ID IN (", questionMarks( missing), ");")
 
-missing_info #### plant 400 and plant 1093 where missing in the fall 2014
-             #### plant 1118 was skipped because it wasn't on the spring 2015 datasheet -- look for it in the fall 
+missing_info = dbGetQuery( db, q, missing) 
+
+missing_info  #### plant 400 and plant 1093 where missing in the fall 2014
+              #### plant 1118 was skipped because it wasn't on the spring 2015 datasheet 
+              #### -- look for it in the fall 
+
+statusChangeReport( old = active, new = springStatus)
+
+active.size$area = (active.size$c1/2)*(active.size$c2/2)*pi
+springStatus$area = (springStatus$c1/2)*(springStatus$c2/2)*pi 
+
+showSizeDiff( old= active.size , new = springStatus, measure= 'ch') ### check 175
+showSizeDiff( old = active.size, new = springStatus, measure = 'stem_d1')
+showSizeDiff( old = active.size, new = springStatus, measure = 'canopy') ### check 321 
+showSizeDiff( old = active.size, new = springStatus, measure = 'area') #### 321 a little small
+
+springStatus[ springStatus$ID %in% c( 321),  ]  #### see notes 
+
+dbGetQuery( db, "SELECT ID, site, treatment, c1, c2, canopy, date, status.notes
+                  FROM status JOIN plants USING (ID) 
+                  WHERE ch IS NOT NULL 
+                  AND ID IN (321) 
+                  ORDER BY ID, date") 
+
+springStatus[ springStatus$ID %in% 175, ] ### Typo on height? 
+
+dbGetQuery( db, "SELECT ID, site, treatment, ch, canopy, date, status.notes
+                  FROM status JOIN plants USING (ID) 
+                  WHERE ch IS NOT NULL 
+                  AND ID IN (175) 
+                  ORDER BY ID, date") 
+
+
+graphics.off()
+
+springStatus = springStatus[ , -which( names(springStatus) == 'area' )] #### drop area 
+
 
 
 dbWriteTable(db, name = 'status', value = springStatus, append = TRUE, row.names = FALSE)
 
-for(i in 1:nrow(springDeadUpdate)){ 
-  ID = springDeadUpdate[i, 'ID']
-  date = springDeadUpdate[i, 'date']
-  res = dbSendQuery( db, "UPDATE plants SET active = 0, end_date = ? 
-                     WHERE ID = ? AND active = 1", list(date, ID))
-  dbClearResult(res)
-}
+dbGetQuery(db, "UPDATE status SET stem_d1 = NULL WHERE (status != 1 OR stem_d1 = 0)")
 
-res = dbSendQuery(db, "UPDATE status SET stem_d1 = NULL WHERE (status != 1 OR stem_d1 = 0)")
-dbClearResult(res)
+dbGetQuery(db, "UPDATE status SET ch = NULL WHERE (status != 1 OR ch = 0)")
 
-res = dbSendQuery(db, "UPDATE status SET ch = NULL WHERE (status != 1 OR ch = 0)")
-dbClearResult(res)
+dbGetQuery(db, "UPDATE status SET c1 = NULL WHERE (status != 1 OR c1 = 0)")
 
-res = dbSendQuery(db, "UPDATE status SET c1 = NULL WHERE (status != 1 OR c1 = 0)")
-dbClearResult(res)
+dbGetQuery(db, "UPDATE status SET c2 = NULL WHERE (status != 1 OR c1 = 0)")
 
-res = dbSendQuery(db, "UPDATE status SET c2 = NULL WHERE (status != 1 OR c1 = 0)")
-dbClearResult(res)
+dbGetQuery(db, "UPDATE status SET infls = NULL WHERE (status != 1 OR c1 = 0)")
 
-res = dbSendQuery(db, "UPDATE status SET infls = NULL WHERE (status != 1 OR c1 = 0)")
-dbClearResult(res)
+dbGetQuery(db, "UPDATE status SET herbivory = 0 WHERE herbivory != 1")
 
-res = dbSendQuery(db, "UPDATE status SET herbivory = 0 WHERE herbivory != 1")
-dbClearResult(res)
+reborn = dbGetQuery( db, q.reborn)
+reborn
+now_dead = dbGetQuery( db, q.now.dead)
+now_dead
+
+dbGetQuery( db, q.update.reborn  ) 
+dbGetQuery( db, q.update.now.dead)
+dbGetQuery(db, q.update.end_date)
+dbGetQuery(db, q.update.active)
+
+dbGetQuery( db, "SELECT ID, status, active, end_date 
+                  FROM 
+                      (
+                      SELECT status, max(date), ID 
+                      FROM status 
+                      GROUP BY ID
+                      ) 
+                  JOIN plants USING (ID) 
+                  WHERE status = 1 
+                  AND active = 0;")  
 
 dbDisconnect(db)            # Close connection
