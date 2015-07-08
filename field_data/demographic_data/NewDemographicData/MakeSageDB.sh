@@ -9,7 +9,7 @@ Rscript 2014_early_spring_status_update.R
 Rscript 2014_spring_transplants_status_update.R 
 Rscript 2014_spring_status_update.R
 Rscript 2014_fall_status_update.R
-#Rscript 2015_spring_status_update.R
-#Rscript makeFlowersTable.R
-#Rscript UpdateFlowersTable.R
+Rscript 2015_spring_status_update.R
+Rscript makeFlowersTable.R
+Rscript UpdateFlowersTable.R
 
