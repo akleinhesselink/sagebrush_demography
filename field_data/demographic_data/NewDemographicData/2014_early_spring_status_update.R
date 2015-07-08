@@ -6,7 +6,6 @@
 #### fall plants with status 2 or 3.  These will be changed
 #### to 0 if the plant is a 0 in the spring of 2014.
 
-
 rm(list = ls())
 library(RSQLite)
 source('check_db_functions.R')

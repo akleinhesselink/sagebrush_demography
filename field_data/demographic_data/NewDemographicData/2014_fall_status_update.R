@@ -4,6 +4,7 @@
 rm(list = ls())
 library(RSQLite)
 source( 'check_db_functions.R')
+source( 'dbQueryTools.R')
 
 fallStatus = read.csv('2014_FallData.csv')
 
@@ -39,14 +40,21 @@ fallStatusUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')
 db = dbConnect(SQLite(), 'sage.sqlite')
 
 lastDate = max(fallStatusUpdate$date)
-res = dbSendQuery( db, "SELECT *, max(date) FROM plants 
-                   JOIN status USING (ID) 
-                   WHERE active = 1 AND start_date <= ? AND date <= ?
-                   GROUP BY ID", list(lastDate, lastDate))
 
-active = fetch( res, -1)
-dbClearResult( res )
+active = dbGetQuery( db, "SELECT *, max(date) 
+                          FROM plants 
+                          JOIN status USING (ID) 
+                          WHERE active = 1 AND start_date <= ? AND date <= ?
+                          GROUP BY ID", list(lastDate, lastDate))
 
+active.size = dbGetQuery( db, "SELECT *, max(date) 
+                          FROM plants 
+                          JOIN status USING (ID) 
+                          WHERE active = 1 
+                          AND start_date <= ? 
+                          AND date <= ?
+                          AND c1 IS NOT NULL
+                          GROUP BY ID", list(lastDate, lastDate))
 
 #### run checks 
 see_if( checkStatus (fallStatusUpdate$status))
@@ -70,31 +78,61 @@ fallStatusUpdate[ fallStatusUpdate$ID %in% Bad & fallStatusUpdate$status == 1, ]
 missing = checkForMissing( fallStatusUpdate$ID, active$ID)
 missing 
 
+statusChangeReport( old = active, new = fallStatusUpdate )
+
+active.size$area = (active.size$c1/2 ) * (  active.size$c2/2) * pi
+fallStatusUpdate$area = (fallStatusUpdate$c1/2)*(fallStatusUpdate$c2/2)*pi
+
+showSizeDiff( old= active.size, new = fallStatusUpdate, measure= 'ch')
+showSizeDiff( old = active.size, new = fallStatusUpdate, measure = 'area') ### 218 looks too small
+showSizeDiff( old = subset( active.size, stem_d1 < 10), new = fallStatusUpdate, measure = 'stem_d1')
+showSizeDiff( old = active.size, new = fallStatusUpdate, measure = 'canopy')
+showSizeDiff( old = subset( active.size, canopy > 20 ), new = fallStatusUpdate, measure = 'canopy')
+ 
+graphics.off()
+
+fallStatusUpdate[ fallStatusUpdate$ID %in% c( 218),  ] 
+fallStatus[ fallStatus$ID %in% c( 218), c('ID', 'site', 'c1', 'c2','canopy', 'treat')]
+
+dbGetQuery( db, "SELECT ID, site, treatment, c1, c2, canopy, date, status.notes
+                  FROM status JOIN plants USING (ID) 
+                  WHERE ch IS NOT NULL 
+                  AND ID IN (218) 
+                  ORDER BY ID, date") 
+
+fallStatusUpdate  = fallStatusUpdate [ , -which (names( fallStatusUpdate)  == 'area' ) ]  ##### drop area
+            
 dbWriteTable(db, name = 'status', value = fallStatusUpdate, append = TRUE, row.names = FALSE)
 
+dbGetQuery(db, "UPDATE status SET ch = NULL WHERE (status != 1 OR ch = 0)")
+
+dbGetQuery(db, "UPDATE status SET c1 = NULL WHERE (status != 1 OR c1 = 0)")
+
+dbGetQuery(db, "UPDATE status SET c2 = NULL WHERE (status != 1 OR c1 = 0)")
+
+dbGetQuery(db, "UPDATE status SET infls = NULL WHERE (status != 1 OR c1 = 0)")
 
 
-for(i in 1:nrow(fallDeadUpdate)){ 
-  ID = fallDeadUpdate[i, 'ID']
-  date = fallDeadUpdate[i, 'date']
-  res = dbSendQuery( db, "UPDATE plants SET active = 0, end_date = ? 
-                     WHERE ID = ? AND active = 1", list(date, ID)) 
-  dbClearResult(res)
-}
+reborn = dbGetQuery( db, q.reborn) #### find status changes from anything back to one 
+reborn ##### These need to be reset to status 1 
 
-res = dbSendQuery(db, "UPDATE status SET stem_d1 = NULL WHERE (status != 1 OR stem_d1 = 0)")
-dbClearResult(res)
+now_dead = dbGetQuery( db, q.now.dead ) ##### find status going from 3 to 0 
+now_dead
 
-res = dbSendQuery(db, "UPDATE status SET ch = NULL WHERE (status != 1 OR ch = 0)")
-dbClearResult(res)
+dbGetQuery( db, q.update.reborn)
+dbGetQuery( db, q.update.now.dead)
+dbGetQuery( db, q.update.end_date)
+dbGetQuery( db, q.update.active)
 
-res = dbSendQuery(db, "UPDATE status SET c1 = NULL WHERE (status != 1 OR c1 = 0)")
-dbClearResult(res)
-
-res = dbSendQuery(db, "UPDATE status SET c2 = NULL WHERE (status != 1 OR c1 = 0)")
-dbClearResult(res)
-
-res = dbSendQuery(db, "UPDATE status SET infls = NULL WHERE (status != 1 OR c1 = 0)")
-dbClearResult(res)
+dbGetQuery( db, "SELECT ID, status, active, end_date 
+                  FROM 
+                      (
+                      SELECT status, max(date), ID 
+                      FROM status 
+                      GROUP BY ID
+                      ) 
+                  JOIN plants USING (ID) 
+                  WHERE status = 1 
+                  AND active = 0;")  
 
 dbDisconnect(db)            # Close connection
