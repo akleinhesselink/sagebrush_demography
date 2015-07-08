@@ -6,9 +6,9 @@
 rm(list = ls())
 library(RSQLite)
 source( 'check_db_functions.R' )
+source( 'dbQueryTools.R')
 
 earlySpringTransplants = read.csv('2014_Early_Spring_Fall_Transplants_Update.csv')
-names(earlySpringTransplants)
 
 origin = '1899-12-30'
 earlySpringTransplants$date = as.Date(earlySpringTransplants$date, origin = origin)
@@ -41,9 +41,10 @@ fallTransplantsUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'in
 fallTransplantsUpdate$date = as.character( fallTransplantsUpdate$date )
 
 lastDate = max(fallTransplantsUpdate$date)
-res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1 AND date( start_date) <= date( ? ) AND class = 5" , list( lastDate))
-active = fetch( res, -1)
-dbClearResult( res )
+active = dbGetQuery( db, "SELECT *, max(date) FROM plants 
+                   JOIN status USING (ID) 
+                   WHERE active = 1 AND start_date <= ? AND date <= ?
+                   GROUP BY ID", list(lastDate, lastDate))
 
 #### run checks 
 see_if( checkStatus (fallTransplantsUpdate$status))
@@ -64,23 +65,27 @@ Bad = checkActive(fallTransplantsUpdate$ID, active$ID )
 Bad
 
 missing = checkForMissing( fallTransplantsUpdate$ID, active$ID ) #### 
-missing
+active[ active$ID %in% missing, c('site', 'class')] #### missing all the non-class 5s 
+
+statusChangeReport( old = active, new= fallTransplantsUpdate )
 
 dbWriteTable(db, name = 'status', value = fallTransplantsUpdate, 
              append = TRUE, row.names = FALSE)
 
-res = dbSendQuery( db, "SELECT ID, field_tag, date FROM status WHERE date(date) > date('2014-01-01') AND date(date) >= date('2014-05-16') 
-                   AND status = 0")
-wintersDead = fetch(res, -1)
-dbClearResult(res)
+reborn = dbGetQuery( db, q.reborn) #### find status changes from anything back to one 
+reborn ##### These need to be reset to status 1 
 
-for(i in 1:nrow(wintersDead)){ 
-  ID = wintersDead[i, 'ID']
-  date = wintersDead[i, 'date']
-  res = dbSendQuery( db, "UPDATE plants SET active = 0, end_date = ? WHERE ID = ? AND active = 1 AND class = 5", 
-                     list(date, ID))
-  dbClearResult(res)
-}
+now_dead = dbGetQuery( db, q.now.dead ) ##### find status going from 3 to 0 
+now_dead
+
+dbGetQuery( db, q.update.now.dead ) #### update status to 0 when they go from 3 to 0 
+
+now_dead = dbGetQuery( db, q.now.dead ) ##### find status going from 3 to 0 
+now_dead$ID
+
+dbGetQuery( db, q.update.end_date ) #### , rep(early_date, 2)) 
+
+dbGetQuery( db, q.update.active )
 
 
 dbDisconnect(db)            # Close connection

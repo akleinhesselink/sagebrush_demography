@@ -74,23 +74,21 @@ newSeedling$ID = 1087
 newSeedling$status = 1 
 earlySpringUpdate = rbind( earlySpringUpdate, newSeedling)
 
+statusChangeReport( old = active, new = earlySpringUpdate )
+
 dbWriteTable(db, name = 'status', value = earlySpringUpdate, 
              append = TRUE, row.names = FALSE)
-
-statusChangeReport( old = active, new = earlySpringUpdate )
 
 early_date = strftime( as.Date(min(earlySpringUpdate$date)) - 1 ) 
 
 reborn = dbGetQuery( db, q.reborn) #### find status changes from anything back to one 
 reborn ##### These need to be reset to status 1 
 
-now_dead = dbGetQuery( db, q.now.dead ) ##### find status going from 3 to 0 
-now_dead
+dbGetQuery( db, q.now.dead ) ##### find status going from 3 to 0 
 
 dbGetQuery( db, q.update.now.dead ) #### update status to 0 when they go from 3 to 0 
 
-now_dead = dbGetQuery( db, q.now.dead ) ##### find status going from 3 to 0 
-now_dead$ID
+dbGetQuery( db, q.now.dead ) ##### find status going from 3 to 0 
 
 dbGetQuery( db, q.update.end_date ) #### , rep(early_date, 2)) 
 

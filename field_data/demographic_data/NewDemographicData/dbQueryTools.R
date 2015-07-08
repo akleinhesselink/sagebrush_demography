@@ -38,7 +38,6 @@ q.update.end_date <- "UPDATE plants
                           AND status = 0
                         );"
 
-
 q.update.active = "UPDATE plants 
                     SET active = 0 
                     WHERE end_date IS NOT NULL;"
@@ -52,14 +51,14 @@ q.reborn = "SELECT ID, date, field_tag, ch, status, notes
               (
                 SELECT ID, max(date)
                 FROM status 
-                WHERE date < 
+                WHERE NOT status = 1
+                AND date < 
                 (
                   SELECT max(date)
                   FROM status AS max_status
                   WHERE max_status.ID = status.ID
                   AND max_status.status = 1
                 )
-                AND NOT status = 1
                 GROUP BY ID
               )
             )
@@ -74,14 +73,14 @@ q.update.reborn = "UPDATE status
                       (
                         SELECT rowid, max(date)
                         FROM status 
-                        WHERE date < 
+                        WHERE NOT status = 1
+                        AND date < 
                         (
                           SELECT max(date)
                           FROM status AS max_status
                           WHERE max_status.ID = status.ID
                           AND max_status.status = 1
                         )
-                      AND NOT status = 1
                       GROUP BY ID
                       )
                     );"
@@ -116,7 +115,7 @@ q.now.dead = "SELECT ID, date, field_tag, ch, stem_d1, status, notes, rowid
                   (
                     SELECT ID, max(date)
                     FROM status 
-                    WHERE NOT status = 1
+                    WHERE status IN (2,3)
                     AND date <                   
                     (
                       SELECT max(date)

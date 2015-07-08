@@ -1,13 +1,10 @@
 #### update Plants table and status table from Spring 2014 Data
 #### 
-#### This script runs the first five scripts first to initialize the database 
-#### It then adds the data from late spring 2014 
-####
-
 
 rm(list = ls())
 library(RSQLite)
 source( 'check_db_functions.R')
+source( 'dbQueryTools.R' )
 
 springStatus = read.csv('2014_spring_size_update_data.csv')
 
@@ -49,13 +46,31 @@ names(springStatusUpdate)[ which( names( springStatusUpdate) == 'TAG' ) ]  <- 'f
 springStatusUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] <- as.numeric( unlist( springStatusUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls')] ))
 
 springStatusUpdate[ springStatusUpdate$ID == 1103 , ] 
-
 springStatusUpdate[ which( springStatusUpdate$ID == 411 ),  ] ##### dead plant 
 
 lastDate = max(springStatusUpdate$date)
-res = dbSendQuery( db, "SELECT * FROM plants WHERE active = 1 AND date( start_date) <= date( ? )" , list( lastDate))
-active = fetch( res, -1)
-dbClearResult( res )
+firstDate = min( springStatusUpdate$date)
+
+active = dbGetQuery( db, "SELECT *, max(date) 
+                          FROM plants 
+                          JOIN status USING (ID) 
+                          WHERE active = 1 AND start_date <= ? AND date <= ?
+                          GROUP BY ID", list(lastDate, lastDate))
+
+active.size = dbGetQuery( db, "SELECT *, max(date) 
+                          FROM plants 
+                          JOIN status USING (ID) 
+                          WHERE active = 1 
+                          AND start_date <= ? 
+                          AND date <= ?
+                          AND c1 IS NOT NULL
+                          GROUP BY ID", list(lastDate, lastDate))
+
+
+new = dbGetQuery( db, "SELECT * FROM plants 
+                        WHERE active = 1 
+                        AND start_date <= ? 
+                        AND start_date >= ?", list( lastDate, firstDate))
 
 #### run checks 
 see_if( checkStatus (springStatusUpdate$status))
@@ -74,40 +89,60 @@ see_if( checkAllMonths( springStatusUpdate$date[ which( springStatusUpdate$infls
 
 Bad <- checkActive( springStatusUpdate$ID, active$ID)
 Bad
+springStatusUpdate[ springStatusUpdate$ID %in% Bad, ] 
+springStatusUpdate[ springStatusUpdate$ID %in% new$ID, 'ID']
 
 missing <- checkForMissing( springStatusUpdate$ID, active$ID )
 missing 
 
+statusChangeReport( old = active, new = springStatusUpdate)
 
-springStatusUpdate[ which( springStatusUpdate$ID %in% Bad & springStatusUpdate$status == 1), ] ##### no live plants 
+springStatusUpdate[ which( springStatusUpdate$ID %in% Bad & springStatusUpdate$status == 1), c('ID') ] ##### no live plants 
+springStatusUpdate[ springStatusUpdate$ID %in% new$ID, "ID"] ### new plants
 springStatusUpdate[ which( springStatusUpdate$ID %in% Bad & springStatusUpdate$status == 3), ] ##### uncertain plants 
+
+springStatusUpdate$area = (springStatusUpdate$c1/2) * (springStatusUpdate$c2/2 ) * pi
+active.size$area = (active.size$c1/2)*(active.size$c2/2)*pi
+
+showSizeDiff( old= subset( active.size, area < 20), new = springStatusUpdate, measure= 'area')
+showSizeDiff( old = active.size, new = springStatusUpdate, measure= 'area')
+showSizeDiff( old = active.size, new = springStatusUpdate, measure = 'ch' )
+showSizeDiff( old = active.size, new = springStatusUpdate, measure = 'canopy')
+showSizeDiff( old = active.size, new = springStatusUpdate, measure = 'stem_d1')
+graphics.off()
+
+springStatusUpdate = springStatusUpdate [ , -which( names( springStatusUpdate ) == 'area' )] #### remove area column
 
 dbWriteTable(db, name = 'status', value = springStatusUpdate, append = TRUE, row.names = FALSE)
 
-res = dbSendQuery( db, "SELECT ID, field_tag, date FROM status 
-                   WHERE date(date) >= date('2014-05-19') AND status = 0")
-springDeadUpdate = fetch(res, -1)
-dbClearResult(res)
-springDeadUpdate
+dbGetQuery(db, "UPDATE status SET stem_d1 = NULL WHERE stem_d1 = 0")
 
-for(i in 1:nrow(springDeadUpdate)){ 
-  ID = springDeadUpdate[i, 'ID']
-  date = springDeadUpdate[i, 'date']
-  res = dbSendQuery( db, "UPDATE plants SET active = 0, end_date = ? 
-                     WHERE ID = ? AND active = 1", list(date, ID))
-  dbClearResult(res)
-}
+dbGetQuery(db, "UPDATE status SET ch = NULL WHERE (status != 1 OR ch = 0)")
 
-res = dbSendQuery(db, "UPDATE status SET stem_d1 = NULL WHERE stem_d1 = 0")
-dbClearResult(res)
+dbGetQuery(db, "UPDATE status SET c1 = NULL WHERE (status != 1 OR c1 = 0)")
 
-res = dbSendQuery(db, "UPDATE status SET ch = NULL WHERE (status != 1 OR ch = 0)")
-dbClearResult(res)
+dbGetQuery(db, "UPDATE status SET c2 = NULL WHERE (status != 1 OR c1 = 0)")
 
-res = dbSendQuery(db, "UPDATE status SET c1 = NULL WHERE (status != 1 OR c1 = 0)")
-dbClearResult(res)
+reborn = dbGetQuery( db, q.reborn) #### find status changes from anything back to one 
+reborn ##### These need to be reset to status 1 
 
-res = dbSendQuery(db, "UPDATE status SET c2 = NULL WHERE (status != 1 OR c1 = 0)")
-dbClearResult(res)
+now_dead = dbGetQuery( db, q.now.dead ) ##### find status going from 3 to 0 
+now_dead
+
+dbGetQuery( db, q.update.reborn)
+dbGetQuery( db, q.update.now.dead)
+dbGetQuery( db, q.update.end_date)
+dbGetQuery( db, q.update.active)
+
+dbGetQuery( db, "SELECT ID, status, active, end_date 
+                  FROM 
+                      (
+                      SELECT status, max(date), ID 
+                      FROM status 
+                      GROUP BY ID
+                      ) 
+                  JOIN plants USING (ID) 
+                  WHERE status = 1 
+                  AND active = 0;")  
 
 dbDisconnect(db)            # Close connection
