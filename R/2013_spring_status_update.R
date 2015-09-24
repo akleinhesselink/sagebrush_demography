@@ -31,7 +31,7 @@ firstStatus[ is.na( firstStatus$infls ) , 'infls'] <- 0
 db = dbConnect(SQLite(), dbname = 'sage.sqlite')
 
 lastDate = max(firstStatus$date)
-active = dbGetQuery( db, "SELECT * FROM plants WHERE active = 1 AND start_date <= ?", list(lastDate ))
+active = dbGetPreparedQuery( db, "SELECT * FROM plants WHERE active = 1 AND start_date <= ?", data.frame(lastDate ))
 
 ###### Run the checks 
 see_if( checkStatus( firstStatus$status))
@@ -99,9 +99,10 @@ early_date = as.Date( min( firstStatus$date[ firstStatus$date > '2013-01-01' ]  
 
 dbGetQuery( db, q.update.end_date ) #, rep( strftime( early_date ), 2 )  )
 
-dbGetQuery( db, makeExceptionalUpdateQuery( exceptions ), rep( exceptions, 2 )  )
+dbGetPreparedQuery( db, makeExceptionalUpdateQuery( exceptions ), as.data.frame(matrix(rep(exceptions, 2), nrow = 1)))
+
 dbGetQuery( db, q.update.active )
 
-dbGetQuery(db, "SELECT * FROM plants WHERE end_date > ?" , list(early_date))
+dbGetPreparedQuery(db, "SELECT * FROM plants WHERE end_date > ?" , data.frame(early_date))
 
 dbDisconnect(db)            # Close connection
