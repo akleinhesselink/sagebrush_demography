@@ -31,6 +31,7 @@
 ######################
 *.log
 *.sql
+*.sqlite
  
 # OS generated files #
 ######################
@@ -42,3 +43,4 @@
 ehthumbs.db
 Thumbs.db
 .Rhistory
+.Rproj.user
