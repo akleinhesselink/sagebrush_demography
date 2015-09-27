@@ -1,6 +1,6 @@
 ##### make infls table in database 
 
-source('R/2015_spring_status_update.R')
+source('R/add_snow_mold_transplants.R')
 
 
 Fall2013 = read.csv( file = 'field_data/demographic_data/2013_Fall_update.csv')

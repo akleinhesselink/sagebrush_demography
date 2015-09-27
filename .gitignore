@@ -45,3 +45,7 @@ Thumbs.db
 .Rhistory
 .Rproj.user
 .RData
+
+# Folders #
+####################
+/output/*

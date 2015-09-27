@@ -1,35 +1,26 @@
 rm(list = ls())
-library(xlsx)
 library(RSQLite)
 library(plyr)
 
-db = dbConnect(SQLite(), '../sage.sqlite')
+db <- dbConnect(SQLite(), 'sage.sqlite')
 
-res = dbSendQuery( db, "SELECT status, notes FROM status WHERE notes LIKE '%left_tag%'")
-statusNotes = fetch(res, -1)
-dbClearResult(res)
+status_notes <- dbGetQuery( db, "SELECT status, notes FROM status WHERE notes LIKE '%left_tag%'")
+head(status_notes)
 
-res = dbSendQuery( db, "SELECT site, transect, Y, X, plants.ID, tag1, tag2, species, class, treatment, status, date, status.notes, plants.notes 
-                          FROM plants 
-                          JOIN status ON status.ID = plants.ID 
-                            WHERE (status.date > date('2014-09-01') AND active = 1 OR status.notes LIKE '%left_tag%')")
+dbListTables(db) 
+dbListFields(db, 'sites')
+dbListFields(db, 'status')
+dbListFields(db, 'plants')
 
-activePlants = fetch(res, -1)
-dbClearResult(res)
+active <- dbGetQuery( db, "SELECT tag1, plants.site, transect, Y, X, treatment, class, species, status AS last_status, status.date AS last_date, plants.notes AS plants_notes, status.notes AS status_notes, plants.ID, ch, c1, c2, canopy
+                  FROM plants 
+                  JOIN sites ON plants.site = sites.site
+                  JOIN status ON plants.ID = status.ID
+                  WHERE (class < 7 AND active = 1 AND status.date > Date('2015-01-01')) OR status.notes LIKE '%left_tag%'
+                      ORDER BY site_no, transect, Y, status.date")
 
-head(activePlants)
-tail(activePlants)
-names(activePlants) [ grep('notes', names(activePlants) )  ] <- c('notes.1', 'notes.2')
+head(active, 100)
 
-table(activePlants$site, activePlants$class, activePlants$status)
+table(active$site, active$class)
 
-active = arrange(activePlants, site, transect, Y)
-head(active)
-dbDisconnect(db)
-
-active = active[ , c('tag1', 'tag2', 'site', 'transect', 'Y', 'X', 'ID', 'species', 'class', 'treatment', 'status', 'date', 'notes.1', 'notes.2') ]
-
-active[ is.na( active$tag2 ) , 'tag2' ]  <- ''
-head( active ) 
-
-write.xlsx(active, file= file.path( '../../data_sheets',  '2015_SpringDataSheet.xlsx' ) , row.names= FALSE)
+write.table(active, file = file.path(file = 'output/data_sheets/',  '2015_fall_datasheet.csv' ), sep = ',', row.names= FALSE)
