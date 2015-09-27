@@ -1,9 +1,7 @@
 #### update Plants table and status table from Fall 2014 Data
 #### 
 ####
-rm(list = ls())
-source( 'R/check_db_functions.R')
-source( 'R/dbQueryTools.R')
+source( 'R/2014_spring_status_update.R')
 
 fallStatus = read.csv('field_data/demographic_data/2014_FallData.csv')
 
@@ -40,20 +38,20 @@ db = dbConnect(SQLite(), 'sage.sqlite')
 
 lastDate = max(fallStatusUpdate$date)
 
-active = dbGetQuery( db, "SELECT *, max(date) 
+active = dbGetPreparedQuery( db, "SELECT *, max(date) 
                           FROM plants 
                           JOIN status USING (ID) 
                           WHERE active = 1 AND start_date <= ? AND date <= ?
-                          GROUP BY ID", list(lastDate, lastDate))
+                          GROUP BY ID", data.frame(lastDate, lastDate))
 
-active.size = dbGetQuery( db, "SELECT *, max(date) 
+active.size = dbGetPreparedQuery( db, "SELECT *, max(date) 
                           FROM plants 
                           JOIN status USING (ID) 
                           WHERE active = 1 
                           AND start_date <= ? 
                           AND date <= ?
                           AND c1 IS NOT NULL
-                          GROUP BY ID", list(lastDate, lastDate))
+                          GROUP BY ID", data.frame(lastDate, lastDate))
 
 #### run checks 
 see_if( checkStatus (fallStatusUpdate$status))

@@ -1,7 +1,5 @@
-rm(list = ls())
 
-source( 'R/check_db_functions.R' )
-source( 'R/dbQueryTools.R')
+source('R/2014_early_spring_status_update.R')
 
 earlySpringTransplants = read.csv('field_data/demographic_data/2014_Early_Spring_Fall_Transplants_Update.csv')
 
@@ -36,10 +34,10 @@ fallTransplantsUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'in
 fallTransplantsUpdate$date = as.character( fallTransplantsUpdate$date )
 
 lastDate = max(fallTransplantsUpdate$date)
-active = dbGetQuery( db, "SELECT *, max(date) FROM plants 
+active = dbGetPreparedQuery( db, "SELECT *, max(date) FROM plants 
                    JOIN status USING (ID) 
                    WHERE active = 1 AND start_date <= ? AND date <= ?
-                   GROUP BY ID", list(lastDate, lastDate))
+                   GROUP BY ID", data.frame(lastDate, lastDate))
 
 #### run checks 
 see_if( checkStatus (fallTransplantsUpdate$status))

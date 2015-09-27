@@ -1,10 +1,7 @@
 #### update Plants table and status table from Fall 2014 Data
 #### 
 ####
-rm(list = ls())
-
-source( 'R/check_db_functions.R')
-source( 'R/dbQueryTools.R')
+source('R/2014_fall_status_update.R')
 
 springStatus = read.csv('field_data/demographic_data/2015_SpringData.csv')
 
@@ -50,20 +47,20 @@ springStatus[ duplicated( springStatus$ID ) , ]
 
 
 lastDate = max(springStatus$date)
-active = dbGetQuery( db, "SELECT *, max(date) 
+active = dbGetPreparedQuery( db, "SELECT *, max(date) 
                           FROM plants 
                           JOIN status USING (ID) 
                           WHERE active = 1 AND start_date <= ? AND date <= ?
-                          GROUP BY ID", list(lastDate, lastDate))
+                          GROUP BY ID", data.frame(lastDate, lastDate))
 
-active.size = dbGetQuery( db, "SELECT *, max(date) 
+active.size = dbGetPreparedQuery( db, "SELECT *, max(date) 
                           FROM plants 
                           JOIN status USING (ID) 
                           WHERE active = 1 
                           AND start_date <= ? 
                           AND date <= ?
                           AND c1 IS NOT NULL
-                          GROUP BY ID", list(lastDate, lastDate))
+                          GROUP BY ID", data.frame(lastDate, lastDate))
 
 #### run checks 
 checkStatus (springStatus$status)
@@ -93,7 +90,8 @@ q = paste( "SELECT ID, site, class, date, status, ch
            JOIN status USING (ID) 
            WHERE ID IN (", questionMarks( missing), ");")
 
-missing_info = dbGetQuery( db, q, missing) 
+
+missing_info = dbGetPreparedQuery( db, q, data.frame(matrix(missing, nrow = 1)))
 
 missing_info  #### plant 400 and plant 1093 where missing in the fall 2014
               #### plant 1118 was skipped because it wasn't on the spring 2015 datasheet 
@@ -129,8 +127,6 @@ dbGetQuery( db, "SELECT ID, site, treatment, ch, canopy, date, status.notes
 graphics.off()
 
 springStatus = springStatus[ , -which( names(springStatus) == 'area' )] #### drop area 
-
-
 
 dbWriteTable(db, name = 'status', value = springStatus, append = TRUE, row.names = FALSE)
 

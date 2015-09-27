@@ -1,7 +1,6 @@
 # update Plants table and status table from Fall 2014 Data
 
-source( 'R/check_db_functions.R')
-source( 'R/dbQueryTools.R')
+source('R/2015_spring_status_update.R')
 
 # merge status with plants table by ID 
 

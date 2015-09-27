@@ -1,6 +1,4 @@
-rm(list = ls())
-source('R/check_db_functions.R')
-source('R/dbQueryTools.R')
+source('R/2013_fall_status_update.R')
 
 earlySpringStatus = read.csv('field_data/demographic_data/2014_Early_Spring_Update.csv')
 
@@ -22,10 +20,10 @@ earlySpringUpdate[ , c('ch', 'c1', 'c2', 'canopy', 'stem_d1', 'stem_d2', 'infls'
 db = dbConnect(SQLite(), dbname = 'sage.sqlite')
 
 lastDate = max(earlySpringUpdate$date)
-active = dbGetQuery( db, "SELECT *, max(date) FROM plants 
+active = dbGetPreparedQuery( db, "SELECT *, max(date) FROM plants 
                    JOIN status USING (ID) 
                    WHERE active = 1 AND start_date <= ? AND date <= ?
-                   GROUP BY ID", list(lastDate, lastDate))
+                   GROUP BY ID", data.frame(lastDate, lastDate))
 #### run checks 
 see_if( checkStatus (earlySpringUpdate$status))
 see_if( checkPlantID ( earlySpringUpdate$ID))
@@ -50,10 +48,10 @@ earlySpringUpdate[ earlySpringUpdate$ID %in% Bad , ] #### as long as the spring 
 missing = checkForMissing( earlySpringUpdate$ID, active$ID ) 
 sort(missing)
 
-missingInfo = dbGetQuery( db, paste( "SELECT ID, start_date, end_date, class, site 
+missingInfo = dbGetPreparedQuery( db, paste( "SELECT ID, start_date, end_date, class, site 
                                       FROM plants  
                                       WHERE ID IN (", questionMarks( missing ), ") 
-                                      ORDER BY ID, site;"), missing) 
+                                      ORDER BY ID, site;"), data.frame(matrix(missing, nrow = 1))) 
 
 missingInfo #### mostly class 5s spring Transplant update catches the 5's later 
                                       ##### 771 is a new seedling is a class 6 and needs to be added to the datasheet 

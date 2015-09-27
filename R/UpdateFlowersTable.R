@@ -1,8 +1,7 @@
-rm(list = ls())
-
 require(reshape2)
-require(RSQLite)
-require(DBI)
+
+source('R/makeFlowersTable.R')
+
 
 Fall2014 = read.csv( file = 'field_data/demographic_data/2014_FallData.csv')
 

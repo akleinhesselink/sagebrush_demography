@@ -1,6 +1,4 @@
-
-source('R/check_db_functions.R')
-source('R/dbQueryTools.R')
+source('R/2013_summer_status_update.R')
 
 fallStatus = read.csv('field_data/demographic_data/2013_Fall_update.csv')
   
@@ -28,15 +26,15 @@ fallStatusUpdate$herbivory[ is.na( fallStatusUpdate$herbivory )  ] <- 0
 fallStatusUpdate$stem_d2 = as.numeric( fallStatusUpdate$stem_d2) 
 
 lastDate = max(fallStatusUpdate$date)
-active = dbGetQuery( db, "SELECT *, max(date) FROM plants 
+active = dbGetPreparedQuery( db, "SELECT *, max(date) FROM plants 
                    JOIN status USING (ID) 
                    WHERE active = 1 AND start_date <= ? AND date <= ?
-                   GROUP BY ID", list(lastDate, lastDate))
+                   GROUP BY ID", data.frame(lastDate, lastDate))
 
-active.size = dbGetQuery( db, "SELECT *, max(date) FROM plants 
+active.size = dbGetPreparedQuery( db, "SELECT *, max(date) FROM plants 
                    JOIN status USING (ID) 
                    WHERE active = 1 AND start_date <= ? AND date <= ? AND ch IS NOT NULL
-                   GROUP BY ID", list(lastDate, lastDate))
+                   GROUP BY ID", data.frame(lastDate, lastDate))
 
 #### run Checks 
 see_if( checkPlantID( fallStatusUpdate$ID ))
@@ -112,7 +110,8 @@ see_if( checkPositiveRange( fallTransplantsUpdate$infls, upper.limit = 900))
 see_if( checkAllMonths( fallTransplantsUpdate$date[ which( fallTransplantsUpdate$infls > 0 )], early= 9, late = 11))
 
 lastDate = max(fallTransplantsUpdate$date)
-active_transplants = dbGetQuery( db, "SELECT * FROM plants WHERE active = 1 AND date( start_date) <= date( ? )" , list( lastDate))
+
+active_transplants <- dbGetPreparedQuery( db, "SELECT * FROM plants WHERE active = 1 AND date( start_date) <= date( ? )" , data.frame(date = lastDate))
 
 Bad = checkActive( fallTransplantsUpdate$ID, active= active_transplants$ID ) 
 Bad
@@ -140,10 +139,13 @@ dbGetQuery( db, q.update.now.dead ) #### update status to 0 when they go from 3 
 
 #### Update plants table: 
 dbGetQuery( db, q.update.end_date) # rep(early_date, 2)) 
-dbGetQuery( db, makeExceptionalUpdateQuery( exceptions ), rep( exceptions, 2) )
+
+dbGetPreparedQuery( db, makeExceptionalUpdateQuery( exceptions ), as.data.frame(matrix(rep(exceptions, 2), nrow = 1)))
+
 dbGetQuery( db, q.update.active )
 
 dbGetQuery( db, "SELECT plants.ID, end_date, date, status FROM plants JOIN status USING (ID) WHERE NOT status = 1 AND end_date IS NULL ORDER BY ID, date")
 
 dbDisconnect(db)            # Close connection
 graphics.off()
+

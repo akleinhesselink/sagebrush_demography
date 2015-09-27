@@ -1,5 +1,3 @@
-rm(list = ls())
-
 source( 'R/check_db_functions.R')
 
 plants = read.csv('field_data/demographic_data/MasterPlantsTable.csv')

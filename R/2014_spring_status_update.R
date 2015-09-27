@@ -1,10 +1,7 @@
 #### update Plants table and status table from Spring 2014 Data
 #### 
 
-rm(list = ls())
-
-source( 'R/check_db_functions.R')
-source( 'R/dbQueryTools.R' )
+source('R/2014_spring_transplants_status_update.R')
 
 springStatus = read.csv('field_data/demographic_data/2014_spring_size_update_data.csv')
 
@@ -51,26 +48,26 @@ springStatusUpdate[ which( springStatusUpdate$ID == 411 ),  ] ##### dead plant
 lastDate = max(springStatusUpdate$date)
 firstDate = min( springStatusUpdate$date)
 
-active = dbGetQuery( db, "SELECT *, max(date) 
+active = dbGetPreparedQuery( db, "SELECT *, max(date) 
                           FROM plants 
                           JOIN status USING (ID) 
                           WHERE active = 1 AND start_date <= ? AND date <= ?
-                          GROUP BY ID", list(lastDate, lastDate))
+                          GROUP BY ID", data.frame(lastDate, lastDate))
 
-active.size = dbGetQuery( db, "SELECT *, max(date) 
+active.size = dbGetPreparedQuery( db, "SELECT *, max(date) 
                           FROM plants 
                           JOIN status USING (ID) 
                           WHERE active = 1 
                           AND start_date <= ? 
                           AND date <= ?
                           AND c1 IS NOT NULL
-                          GROUP BY ID", list(lastDate, lastDate))
+                          GROUP BY ID", data.frame(lastDate, lastDate))
 
 
-new = dbGetQuery( db, "SELECT * FROM plants 
+new = dbGetPreparedQuery( db, "SELECT * FROM plants 
                         WHERE active = 1 
                         AND start_date <= ? 
-                        AND start_date >= ?", list( lastDate, firstDate))
+                        AND start_date >= ?", data.frame( lastDate, firstDate))
 
 #### run checks 
 see_if( checkStatus (springStatusUpdate$status))

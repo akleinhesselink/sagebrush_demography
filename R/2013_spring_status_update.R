@@ -1,5 +1,5 @@
-source( 'R/check_db_functions.R')
 source('R/dbQueryTools.R')
+source('R/make_sites_table.R')
 
 firstStatus = read.csv('field_data/demographic_data/2012_Fall_to_2013_SpringStatus.csv')
 
@@ -70,6 +70,8 @@ showSizeDiff( old = old[ old$class == 1, ], new = new, measure = 'stem_d1')
 firstStatus$notes = as.character(firstStatus$notes)
 firstStatus$notes[ firstStatus$ID == 149 ]<- c('fall 2012 measurement may include separate plant nearby', '')
 
+dbGetQuery(db, "DROP TABLE IF EXISTS status")
+
 dbGetQuery(db, "CREATE TABLE status
                 (
                 ID INTEGER,
@@ -87,7 +89,7 @@ dbGetQuery(db, "CREATE TABLE status
                 status INTEGER,
                 notes TEXT, 
                 herbivory INTEGER,
-                CONSTRAINT obs_pk PRIMARY KEY (ID, date) );")
+                CONSTRAINT obs_pk PRIMARY KEY (ID, date) );" )
 
 dbWriteTable(db, name = 'status', value = firstStatus, row.names = FALSE, overwrite = TRUE)
 

@@ -1,8 +1,7 @@
 ##### make infls table in database 
-rm(list = ls())
 
-require(DBI)
-require(RSQLite)
+source('R/2015_spring_status_update.R')
+
 
 Fall2013 = read.csv( file = 'field_data/demographic_data/2013_Fall_update.csv')
 

@@ -1,4 +1,4 @@
-source( 'R/check_db_functions.R')
+source('R/make_plants_table.R')
 
 sites = read.csv('field_data/site_characteristics/site_positions.csv')
 
